@@ -44,4 +44,5 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .env
-.gitattributes
+tt_mobile_app_key/AuthKey_NJXBN3WFLF.p8
+tt_mobile_app_key/KEYS

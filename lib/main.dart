@@ -7,6 +7,9 @@ import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:tt_mobile_app/services/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
@@ -14,7 +17,109 @@ types.User _user = const types.User(id: 'user');
 Future<void> main() async {
   // Load environment variables
   await dotenv.load(fileName: ".env");
+  await Firebase.initializeApp();
+  initNotifications();
+  FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
+  setupFirebaseListeners();
+  // Initialize local notifications
+  initializeNotifications();
   runApp(const MyApp());
+}
+
+// Handle background messages
+Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
+  print('Background message received: ${message.notification?.title}');
+}
+
+final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+
+void initNotifications() async {
+  NotificationSettings settings = await _firebaseMessaging.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+    print('User granted permission');
+  } else {
+    print('User declined or has not accepted permission');
+  }
+}
+
+Future<String?> getToken() async {
+  // Retrieve APNS token
+  String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+
+  if (apnsToken == null) {
+    print('Push notifications may not work.');
+  } else {
+    // Retrieve FCM token
+    String? fcmToken = await FirebaseMessaging.instance.getToken();
+    if (fcmToken != null) {
+      print('FCM Token: $fcmToken');
+    } else {
+      print('Failed to retrieve FCM token.');
+    }
+    print('APNS token: $apnsToken');
+  }
+
+  return apnsToken;
+}
+
+void handleForegroundMessage(RemoteMessage message) async {
+  print('Message received: ${message.notification?.title}');
+
+  // Show a push notification when the app is in the foreground
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
+    'high_importance_channel', // channel ID
+    'High Importance Notifications', // channel name
+    importance: Importance.max,
+    priority: Priority.high,
+    playSound: true,
+  );
+
+  const NotificationDetails platformChannelSpecifics =
+      NotificationDetails(android: androidPlatformChannelSpecifics);
+
+  await flutterLocalNotificationsPlugin.show(
+    0, // Notification ID
+    message.notification?.title ?? 'Notification',
+    message.notification?.body ?? 'You have a new message.',
+    platformChannelSpecifics,
+    payload: message.data.toString(),
+  );
+}
+
+void handleMessageOpenedApp(RemoteMessage message) {
+  print('Message clicked: ${message.data['thread_id']}');
+  // Navigate to ChatPage
+}
+
+void setupFirebaseListeners() {
+  FirebaseMessaging.onMessage.listen(handleForegroundMessage);
+  FirebaseMessaging.onMessageOpenedApp.listen(handleMessageOpenedApp);
+}
+
+FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+void initializeNotifications() {
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const DarwinInitializationSettings initializationSettingsIOS =
+      DarwinInitializationSettings();
+
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+    iOS: initializationSettingsIOS,
+  );
+
+  flutterLocalNotificationsPlugin.initialize(
+    initializationSettings,
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -50,6 +155,8 @@ class AuthCheck extends StatelessWidget {
       imageUrl: userData?['user']?['avatar_urls']
           ?['s'], // Replace with actual avatar URL or leave null
     );
+
+    getToken();
 
     return prefs.containsKey('userData');
   }
@@ -109,6 +216,8 @@ class _LoginPageState extends State<LoginPage> {
         imageUrl: userData?['user']?['avatar_urls']
             ?['s'], // Replace with actual avatar URL or leave null
       );
+
+      getToken();
 
       Navigator.pushReplacement(
         context,
