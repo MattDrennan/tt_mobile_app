@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -467,11 +469,25 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   List<types.Message> _messages = [];
+  Timer? _timer; // Timer for polling
 
   @override
   void initState() {
     super.initState();
     _fetchMessages();
+    _startMessagePolling(); // Start periodic updates
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Cancel the timer on exit
+    super.dispose();
+  }
+
+  void _startMessagePolling() {
+    _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
+      _fetchMessages(); // Fetch messages periodically
+    });
   }
 
   Future<void> _fetchMessages() async {
@@ -504,7 +520,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             createdAt: post['post_date'] * 1000,
             id: post['post_id'].toString(),
-            metadata: {'html': post['message_parsed']}, // Store HTML content
+            metadata: {'html': post['message_parsed']},
           );
         }).toList();
 
@@ -526,61 +542,48 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _addMessage(types.PartialText message) async {
     final userData = await SharedPrefsService().getUserData();
 
-    // Create the CustomMessage object for immediate display
     final customMessage = types.CustomMessage(
       author: types.User(
         id: userData!['user']['user_id'].toString(),
-        firstName: userData?['user']['username'], // User's name
-        imageUrl: userData?['user']['avatar_urls']?['s'], // Avatar URL
+        firstName: userData?['user']['username'],
+        imageUrl: userData?['user']['avatar_urls']?['s'],
       ),
       createdAt: DateTime.now().millisecondsSinceEpoch,
       id: DateTime.now().toString(),
-      metadata: {'html': message.text}, // Store text as HTML
+      metadata: {'html': message.text},
     );
 
-    // Add the message to the UI immediately
     setState(() {
       _messages.insert(0, customMessage);
     });
 
     try {
-      // Send POST request to XenForo API
       final response = await http.post(
         Uri.parse('${dotenv.env['FORUM_URL'].toString()}api/posts'),
         headers: {
-          'XF-Api-Key':
-              dotenv.env['API_KEY'].toString(), // Replace with your API key
-          'XF-Api-User': userData!['user']['user_id']
-              .toString(), // Replace with your API user ID
+          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
+          'XF-Api-User': userData!['user']['user_id'].toString(),
         },
         body: {
-          'thread_id':
-              widget.threadId.toString(), // Replace with your thread ID
-          'message': message.text, // Text message to post
+          'thread_id': widget.threadId.toString(),
+          'message': message.text,
         },
       );
 
-      // Handle the API response
-      if (response.statusCode == 200) {
-        print('Message posted successfully: ${response.body}');
-      } else {
-        print('Failed to post message: ${response.statusCode}');
-        print('Response: ${response.body}');
-        _removeMessage(customMessage.id); // Remove message if posting fails
+      if (response.statusCode != 200) {
+        _removeMessage(customMessage.id);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to send message.')),
         );
       }
     } catch (error) {
-      print('Error posting message: $error');
-      _removeMessage(customMessage.id); // Remove message if an error occurs
+      _removeMessage(customMessage.id);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to send message.')),
       );
     }
   }
 
-// Function to remove a message
   void _removeMessage(String messageId) {
     setState(() {
       _messages.removeWhere((message) => message.id == messageId);
@@ -595,9 +598,7 @@ class _ChatScreenState extends State<ChatScreen> {
         messages: _messages,
         onSendPressed: _addMessage,
         user: _user,
-        // Custom message builder for rendering HTML
         customMessageBuilder: (message, {required int messageWidth}) {
-          // Determine if the message was sent by the user
           final isSentByUser = message.author.id == _user.id;
 
           if (message is types.CustomMessage &&
@@ -608,14 +609,14 @@ class _ChatScreenState extends State<ChatScreen> {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: isSentByUser
-                  ? MainAxisAlignment.end // Sent messages on the right
-                  : MainAxisAlignment.start, // Received messages on the left
+                  ? MainAxisAlignment.end
+                  : MainAxisAlignment.start,
               children: [
-                if (!isSentByUser) // Show avatar only for received messages
+                if (!isSentByUser)
                   CircleAvatar(
                     backgroundImage: NetworkImage(
                       message.author.imageUrl ??
-                          'https://www.fl501st.com/assets/images/profile.png', // Placeholder image
+                          'https://www.fl501st.com/assets/images/profile.png',
                     ),
                     radius: 20,
                   ),
@@ -624,10 +625,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 Flexible(
                   child: Column(
                     crossAxisAlignment: isSentByUser
-                        ? CrossAxisAlignment.end // Sent messages aligned right
-                        : CrossAxisAlignment.start, // Received aligned left
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
                     children: [
-                      // Display name above the message
                       Text(
                         message.author.firstName ?? 'Unknown',
                         style: TextStyle(
@@ -635,8 +635,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             fontSize: 14.0,
                             color: !isSentByUser ? Colors.black : Colors.white),
                       ),
-                      const SizedBox(
-                          height: 4.0), // Spacing between name and bubble
+                      const SizedBox(height: 4.0),
                       Container(
                         padding: const EdgeInsets.all(12.0),
                         constraints: BoxConstraints(
@@ -644,27 +643,14 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: isSentByUser
-                              ? Colors.blue[400] // Sent message color
-                              : Colors.grey[300], // Received message color
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(16.0),
-                            topRight: const Radius.circular(16.0),
-                            bottomLeft: isSentByUser
-                                ? const Radius.circular(16.0)
-                                : const Radius.circular(
-                                    4.0), // Pointed for received
-                            bottomRight: isSentByUser
-                                ? const Radius.circular(4.0) // Pointed for sent
-                                : const Radius.circular(16.0),
-                          ),
+                              ? Colors.blue[400]
+                              : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(16.0),
                         ),
                         child: HtmlWidget(
                           htmlContent,
                           textStyle: TextStyle(
-                            color: isSentByUser
-                                ? Colors.white // Text color for sent messages
-                                : Colors
-                                    .black87, // Text color for received messages
+                            color: isSentByUser ? Colors.white : Colors.black87,
                             fontSize: 16.0,
                           ),
                         ),
@@ -687,7 +673,7 @@ class _ChatScreenState extends State<ChatScreen> {
             );
           }
 
-          return const SizedBox.shrink(); // Fallback for unsupported messages
+          return const SizedBox.shrink();
         },
       ),
     );
