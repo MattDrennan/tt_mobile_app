@@ -290,7 +290,7 @@ class MyHomePage extends StatelessWidget {
       appBar: AppBar(
         title: Text(title),
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
@@ -300,26 +300,32 @@ class MyHomePage extends StatelessWidget {
               width: 200,
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Navigate to View Troops page
-              },
-              child: const Text('View Troops'),
+            /*ElevatedButton(
+          onPressed: () {
+            // Navigate to View Troops page
+          },
+          child: const Text('View Troops'),
+        ),
+        const SizedBox(height: 20),*/
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ChatPage()),
+                  );
+                },
+                child: const Text('Chat'),
+              ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ChatPage()),
-                );
-              },
-              child: const Text('Chat'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => _logout(context),
-              child: const Text('Log Out'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _logout(context),
+                child: const Text('Log Out'),
+              ),
             ),
           ],
         ),
@@ -369,24 +375,29 @@ class _ChatPageState extends State<ChatPage> {
       appBar: AppBar(
         title: const Text('Troops'),
       ),
-      body: ListView.builder(
-        itemCount: troops.length,
-        itemBuilder: (context, index) {
-          return ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatScreen(
-                    troopName: troops[index]['name'],
-                    threadId: troops[index]['thread_id'],
-                  ),
-                ),
-              );
-            },
-            child: Text(troops[index]['name']),
-          );
-        },
+      body: SingleChildScrollView(
+        child: Column(
+          children: List.generate(
+            troops.length,
+            (index) => SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatScreen(
+                        troopName: troops[index]['name'],
+                        threadId: troops[index]['thread_id'],
+                      ),
+                    ),
+                  );
+                },
+                child: Text(troops[index]['name']),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
