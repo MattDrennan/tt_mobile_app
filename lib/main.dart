@@ -15,6 +15,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   // Load environment variables
@@ -117,8 +118,22 @@ void handleForegroundMessage(RemoteMessage message) async {
 }
 
 void handleMessageOpenedApp(RemoteMessage message) {
-  print('Message clicked: ${message.data['thread_id']}');
+  print('Message clicked: ${message.data['threadId']}');
+
   // Navigate to ChatPage
+  final threadId = int.parse(message.data['threadId']); // Parse thread ID
+  final troopName = message.data['troopName'] ?? 'Unknown'; // Get troop name
+
+  // Navigate to the ChatScreen
+  Navigator.push(
+    navigatorKey.currentContext!, // Use a global navigator key
+    MaterialPageRoute(
+      builder: (context) => ChatScreen(
+        troopName: troopName,
+        threadId: threadId,
+      ),
+    ),
+  );
 }
 
 void setupFirebaseListeners() {
@@ -152,6 +167,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Troop Tracker Mobile',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
