@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:photo_view/photo_view_gallery.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
@@ -12,6 +14,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:image_picker/image_picker.dart' as imagePicker;
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:photo_view/photo_view.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
@@ -122,6 +128,7 @@ void handleMessageOpenedApp(RemoteMessage message) {
 
   // Navigate to ChatPage
   final threadId = int.parse(message.data['threadId']); // Parse thread ID
+  final postId = int.parse(message.data['postId']); // Parse post ID
   final troopName = message.data['troopName'] ?? 'Unknown'; // Get troop name
 
   // Navigate to the ChatScreen
@@ -131,6 +138,7 @@ void handleMessageOpenedApp(RemoteMessage message) {
       builder: (context) => ChatScreen(
         troopName: troopName,
         threadId: threadId,
+        postId: postId,
       ),
     ),
   );
@@ -453,9 +461,9 @@ class _ChatPageState extends State<ChatPage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => ChatScreen(
-                        troopName: troops[index]['name'],
-                        threadId: troops[index]['thread_id'],
-                      ),
+                          troopName: troops[index]['name'],
+                          threadId: troops[index]['thread_id'],
+                          postId: troops[index]['post_id']),
                     ),
                   );
                 },
@@ -472,11 +480,13 @@ class _ChatPageState extends State<ChatPage> {
 class ChatScreen extends StatefulWidget {
   final String troopName;
   final int threadId;
+  final int postId;
 
   const ChatScreen({
     super.key,
     required this.troopName,
     required this.threadId,
+    required this.postId,
   });
 
   @override
@@ -485,6 +495,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   List<types.Message> _messages = [];
+  final imagePicker.ImagePicker _picker = imagePicker.ImagePicker();
   Timer? _timer; // Timer for polling
 
   @override
@@ -606,6 +617,173 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  Future<String?> _getAttachmentKey() async {
+    try {
+      final userData = await SharedPrefsService().getUserData();
+
+      final response = await http.post(
+        Uri.parse(
+            '${dotenv.env['FORUM_URL'].toString()}api/attachments/new-key'),
+        headers: {
+          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
+          'XF-Api-User': userData!['user']['user_id'].toString(),
+        },
+        body: {
+          'type': 'post',
+          'context[post_id]': widget.postId.toString(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('Attachment Key: ${data['key']}');
+        return data['key'];
+      } else {
+        print('Failed to fetch attachment key: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching attachment key: $e');
+      return null;
+    }
+  }
+
+  // Upload image and add message
+  Future<void> _addImageMessage(File imageFile) async {
+    try {
+      final userData = await SharedPrefsService().getUserData();
+
+      // Fetch attachment key
+      final attachmentKey = await _getAttachmentKey();
+      if (attachmentKey == null) {
+        throw Exception('Failed to retrieve attachment key.');
+      }
+
+      // Determine MIME type of the image
+      final mimeType = lookupMimeType(imageFile.path);
+
+      // Create a multipart request for XenForo API
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse(
+          '${dotenv.env['FORUM_URL'].toString()}api/attachments',
+        ),
+      );
+
+      // Add API headers
+      request.headers.addAll({
+        'XF-Api-Key': dotenv.env['API_KEY'].toString(),
+        'XF-Api-User': userData!['user']['user_id'].toString(),
+      });
+
+      // Attach the image file
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'attachment',
+          imageFile.path,
+          contentType: MediaType.parse(mimeType!),
+        ),
+      );
+
+      // Add attachment key
+      request.fields['key'] = attachmentKey;
+
+      // Send the request
+      final response = await request.send();
+
+      // Read response body
+      final responseData = await response.stream.bytesToString();
+      final data = json.decode(responseData);
+
+      print('Response Body: $responseData');
+
+      if (response.statusCode == 200 && data['attachment'] != null) {
+        // Get the attachment ID from the response
+        final attachmentId = data['attachment']['attachment_id'];
+
+        // Construct the image URL (use thumbnail or full-size view URL)
+        final imageUrl = data['attachment']['thumbnail_url'] ??
+            data['attachment']['view_url'];
+
+        final msg = types.CustomMessage(
+          author: types.User(
+            id: userData!['user']['user_id'].toString(),
+            firstName: userData?['user']['username'],
+            imageUrl: userData?['user']['avatar_urls']?['s'],
+          ),
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          id: DateTime.now().toString(),
+          metadata: {'html': '<img src=\'$imageUrl\' />'},
+        );
+
+        // Add the image message to the chat
+        setState(() {
+          _messages.insert(0, msg);
+        });
+
+        try {
+          final responseImagePost = await http.post(
+            Uri.parse('${dotenv.env['FORUM_URL'].toString()}api/posts'),
+            headers: {
+              'XF-Api-Key': dotenv.env['API_KEY'].toString(),
+              'XF-Api-User': userData!['user']['user_id'].toString(),
+            },
+            body: {
+              'thread_id': widget.threadId.toString(),
+              'message': '',
+              'attachment_key': attachmentKey,
+            },
+          );
+
+          print(responseImagePost.body);
+
+          if (responseImagePost.statusCode != 200) {
+            _removeMessage(msg.id);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to send message.')),
+            );
+          }
+        } catch (error) {
+          _removeMessage(msg.id);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to send message.')),
+          );
+        }
+      } else {
+        // Show error if upload fails
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to upload image.')),
+        );
+      }
+    } catch (e) {
+      // Catch and handle errors
+      print('Error uploading image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error uploading image.')),
+      );
+    }
+  }
+
+  // Pick image from gallery
+  Future<void> _pickImage() async {
+    final pickedFile =
+        await _picker.pickImage(source: imagePicker.ImageSource.gallery);
+
+    if (pickedFile != null) {
+      _addImageMessage(File(pickedFile.path)); // Upload image and send message
+    }
+  }
+
+  // Capture image using camera
+  Future<void> _captureImage() async {
+    final pickedFile =
+        await _picker.pickImage(source: imagePicker.ImageSource.camera);
+
+    if (pickedFile != null) {
+      _addImageMessage(File(pickedFile.path)); // Upload image and send message
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -614,6 +792,34 @@ class _ChatScreenState extends State<ChatScreen> {
         messages: _messages,
         onSendPressed: _addMessage,
         user: _user,
+        onAttachmentPressed: () {
+          // Show options to pick or capture image
+          showModalBottomSheet(
+            context: context,
+            builder: (BuildContext context) {
+              return Wrap(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt),
+                    title: const Text('Camera'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _captureImage();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.photo),
+                    title: const Text('Gallery'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage();
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        },
         customMessageBuilder: (message, {required int messageWidth}) {
           final isSentByUser = message.author.id == _user.id;
 
@@ -636,8 +842,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     radius: 20,
                   ),
-                if (!isSentByUser)
-                  const SizedBox(width: 8.0), // Spacing for avatar
+                if (!isSentByUser) const SizedBox(width: 8.0),
                 Flexible(
                   child: Column(
                     crossAxisAlignment: isSentByUser
@@ -669,6 +874,52 @@ class _ChatScreenState extends State<ChatScreen> {
                             color: isSentByUser ? Colors.white : Colors.black87,
                             fontSize: 16.0,
                           ),
+                          customWidgetBuilder: (element) {
+                            if (element.localName == 'img' &&
+                                element.attributes['src'] != null) {
+                              final imageUrl = element.attributes['src']!;
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => Scaffold(
+                                        appBar: AppBar(
+                                          title: const Text('Image Viewer'),
+                                          leading: IconButton(
+                                            icon: Icon(Icons.arrow_back),
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                          ),
+                                        ),
+                                        body: PhotoViewGallery.builder(
+                                          itemCount: 1,
+                                          builder: (context, index) {
+                                            return PhotoViewGalleryPageOptions(
+                                              imageProvider:
+                                                  NetworkImage(imageUrl),
+                                              minScale: PhotoViewComputedScale
+                                                  .contained,
+                                              maxScale: PhotoViewComputedScale
+                                                      .covered *
+                                                  2,
+                                            );
+                                          },
+                                          scrollPhysics:
+                                              const BouncingScrollPhysics(),
+                                          backgroundDecoration: BoxDecoration(
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Image.network(imageUrl),
+                              );
+                            }
+                            return null;
+                          },
                         ),
                       ),
                     ],

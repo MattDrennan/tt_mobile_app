@@ -49,5 +49,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+		<string>This app requires access to your photo library to upload and display images in chat.</string>
+	<key>NSCameraUsageDescription</key>
+		<string>This app requires access to your camera to capture images for upload in chat.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs permission to save images to your photo library.</string>
 </dict>
 </plist>
