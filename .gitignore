@@ -46,3 +46,4 @@ app.*.map.json
 .env
 tt_mobile_app_key/AuthKey_NJXBN3WFLF.p8
 tt_mobile_app_key/KEYS
+/tt_mobile_app_key

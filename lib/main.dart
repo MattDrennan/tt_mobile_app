@@ -47,24 +47,46 @@ void initNotifications() async {
   }
 }
 
-Future<String?> getToken() async {
+Future<bool> getToken(String userId) async {
   // Retrieve APNS token
   String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
 
   if (apnsToken == null) {
     print('Push notifications may not work.');
+    return true;
   } else {
+    // APNS Token
+    print('APNS token: $apnsToken');
+
     // Retrieve FCM token
     String? fcmToken = await FirebaseMessaging.instance.getToken();
     if (fcmToken != null) {
       print('FCM Token: $fcmToken');
+
+      final response = await http.post(
+        Uri.parse('https://www.fl501st.com/troop-tracker/mobileapi.php'),
+        body: {
+          'action': 'saveFCM',
+          'userid': userId,
+          'fcm': fcmToken,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Save FCM
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('fcm', fcmToken);
+        print('Success');
+        return true;
+      } else {
+        print('Fail');
+        return false;
+      }
     } else {
       print('Failed to retrieve FCM token.');
+      return false;
     }
-    print('APNS token: $apnsToken');
   }
-
-  return apnsToken;
 }
 
 void handleForegroundMessage(RemoteMessage message) async {
@@ -146,7 +168,6 @@ class AuthCheck extends StatelessWidget {
 
   Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
-
     final userData = await SharedPrefsService().getUserData();
 
     _user = types.User(
@@ -156,7 +177,7 @@ class AuthCheck extends StatelessWidget {
           ?['s'], // Replace with actual avatar URL or leave null
     );
 
-    getToken();
+    getToken(userData!['user']['user_id'].toString());
 
     return prefs.containsKey('userData');
   }
@@ -217,7 +238,7 @@ class _LoginPageState extends State<LoginPage> {
             ?['s'], // Replace with actual avatar URL or leave null
       );
 
-      getToken();
+      getToken(userData!['user']['user_id'].toString());
 
       Navigator.pushReplacement(
         context,
@@ -237,26 +258,34 @@ class _LoginPageState extends State<LoginPage> {
       appBar: AppBar(
         title: const Text('Login'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            TextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(labelText: 'Username'),
-            ),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _login,
-              child: const Text('Login'),
-            ),
-          ],
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Image.asset(
+                'assets/logo.png',
+                height: 200,
+                width: 200,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _usernameController,
+                decoration: const InputDecoration(labelText: 'Username'),
+              ),
+              TextField(
+                controller: _passwordController,
+                decoration: const InputDecoration(labelText: 'Password'),
+                obscureText: true,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _login,
+                child: const Text('Login'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -270,11 +299,30 @@ class MyHomePage extends StatelessWidget {
 
   Future<void> _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // Clear all data, ensuring complete logout
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Logging out...')),
     );
+
+    final response = await http.post(
+      Uri.parse('https://www.fl501st.com/troop-tracker/mobileapi.php'),
+      body: {
+        'action': 'logoutFCM',
+        'fcm': prefs.getString('fcm'),
+      },
+    );
+
+    print(response.body);
+
+    if (response.statusCode == 200) {
+      print('Success');
+      await prefs.clear(); // Clear all data, ensuring complete logout
+    } else {
+      print('Fail');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occured while logging out!')),
+      );
+    }
 
     Future.delayed(const Duration(seconds: 1), () {
       Navigator.of(context).pushAndRemoveUntil(
