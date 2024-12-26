@@ -338,8 +338,6 @@ class MyHomePage extends StatelessWidget {
       },
     );
 
-    print(response.body);
-
     if (response.statusCode == 200) {
       print('Success');
       await prefs.clear(); // Clear all data, ensuring complete logout
@@ -634,8 +632,6 @@ class _ChatScreenState extends State<ChatScreen> {
         },
       );
 
-      print(widget.threadId.toString());
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         print('Attachment Key: ${data['key']}');
@@ -697,8 +693,6 @@ class _ChatScreenState extends State<ChatScreen> {
       final responseData = await response.stream.bytesToString();
       final data = json.decode(responseData);
 
-      print('Response Body: $responseData');
-
       if (response.statusCode == 200 && data['attachment'] != null) {
         // Get the attachment ID from the response
         final attachmentId = data['attachment']['attachment_id'];
@@ -736,8 +730,6 @@ class _ChatScreenState extends State<ChatScreen> {
               'attachment_key': attachmentKey,
             },
           );
-
-          print(responseImagePost.body);
 
           if (responseImagePost.statusCode != 200) {
             _removeMessage(msg.id);
