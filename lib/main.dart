@@ -630,9 +630,11 @@ class _ChatScreenState extends State<ChatScreen> {
         },
         body: {
           'type': 'post',
-          'context[post_id]': widget.postId.toString(),
+          'context[thread_id]': widget.threadId.toString(),
         },
       );
+
+      print(widget.threadId.toString());
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -730,7 +732,7 @@ class _ChatScreenState extends State<ChatScreen> {
             },
             body: {
               'thread_id': widget.threadId.toString(),
-              'message': '',
+              'message': '[IMG]${data['attachment']['direct_url']}[/IMG]',
               'attachment_key': attachmentKey,
             },
           );
