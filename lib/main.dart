@@ -3,13 +3,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
-import 'package:tt_mobile_app/services/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -18,6 +17,7 @@ import 'package:image_picker/image_picker.dart' as imagePicker;
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:photo_view/photo_view.dart';
+import 'package:hive/hive.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
@@ -26,6 +26,11 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   // Load environment variables
   await dotenv.load(fileName: ".env");
+  // Load HIVE
+  final dir = await getApplicationDocumentsDirectory();
+  Hive.init(dir.path);
+  await Hive.openBox('TTMobileApp');
+  // Load Firebase
   await Firebase.initializeApp();
   initNotifications();
   FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
@@ -83,8 +88,8 @@ Future<bool> getToken(String userId) async {
 
       if (response.statusCode == 200) {
         // Save FCM
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('fcm', fcmToken);
+        final box = Hive.box('TTMobileApp');
+        box.put('fcm', fcmToken);
         print('Success');
         return true;
       } else {
@@ -193,19 +198,42 @@ class AuthCheck extends StatelessWidget {
   const AuthCheck({super.key});
 
   Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userData = await SharedPrefsService().getUserData();
+    try {
+      // Open the Hive box
+      final box = Hive.box('TTMobileApp');
 
-    _user = types.User(
-      id: userData!['user']['user_id'].toString(),
-      firstName: userData?['user']['username'], // Set the user's name
-      imageUrl: userData?['user']?['avatar_urls']
-          ?['s'], // Replace with actual avatar URL or leave null
-    );
+      // Retrieve and decode user data
+      final rawData = box.get('userData');
 
-    getToken(userData!['user']['user_id'].toString());
+      // Check if data exists
+      if (rawData == null) {
+        return false; // No data found, user is not logged in
+      }
 
-    return prefs.containsKey('userData');
+      final userData = json.decode(rawData);
+
+      // Validate user data structure
+      if (userData['user'] == null || userData['user']['user_id'] == null) {
+        return false; // Invalid data, treat as not logged in
+      }
+
+      // Set user object (assuming _user is a global or class variable)
+      _user = types.User(
+        id: userData['user']['user_id'].toString(),
+        firstName: userData['user']['username'], // Set the user's name
+        imageUrl: userData['user']?['avatar_urls']?['s'], // Avatar URL
+      );
+
+      // Call a method to get the token
+      await getToken(userData['user']['user_id'].toString());
+
+      // Return true if all checks pass
+      return true;
+    } catch (e) {
+      // Handle exceptions (e.g., decoding errors)
+      print('Error in isLoggedIn: $e');
+      return false;
+    }
   }
 
   @override
@@ -254,8 +282,8 @@ class _LoginPageState extends State<LoginPage> {
     final userData = json.decode(response.body);
 
     if (response.statusCode == 200) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('userData', json.encode(userData));
+      final box = Hive.box('TTMobileApp');
+      box.put('userData', json.encode(userData));
 
       _user = types.User(
         id: userData!['user']['user_id'].toString(),
@@ -324,7 +352,7 @@ class MyHomePage extends StatelessWidget {
   final String title;
 
   Future<void> _logout(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
+    final box = Hive.box('TTMobileApp');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Logging out...')),
@@ -334,13 +362,13 @@ class MyHomePage extends StatelessWidget {
       Uri.parse('https://www.fl501st.com/troop-tracker/mobileapi.php'),
       body: {
         'action': 'logoutFCM',
-        'fcm': prefs.getString('fcm'),
+        'fcm': box.get('fcm'),
       },
     );
 
     if (response.statusCode == 200) {
       print('Success');
-      await prefs.clear(); // Clear all data, ensuring complete logout
+      await box.clear(); // Clear all data, ensuring complete logout
     } else {
       print('Fail');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -417,7 +445,8 @@ class _ChatPageState extends State<ChatPage> {
   List<dynamic> troops = [];
 
   Future<void> fetchTroops() async {
-    final userData = await SharedPrefsService().getUserData();
+    final box = Hive.box('TTMobileApp');
+    final userData = await json.decode(box.get('userData'));
     final response = await http.get(
       Uri.parse(
           'https://www.fl501st.com/troop-tracker/mobileapi.php?user_id=${userData!['user']['user_id'].toString()}&action=troops'),
@@ -565,7 +594,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _addMessage(types.PartialText message) async {
-    final userData = await SharedPrefsService().getUserData();
+    final box = Hive.box('TTMobileApp');
+    final userData = await json.decode(box.get('userData'));
 
     final customMessage = types.CustomMessage(
       author: types.User(
@@ -617,7 +647,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<String?> _getAttachmentKey() async {
     try {
-      final userData = await SharedPrefsService().getUserData();
+      final box = Hive.box('TTMobileApp');
+      final userData = await json.decode(box.get('userData'));
 
       final response = await http.post(
         Uri.parse(
@@ -649,7 +680,8 @@ class _ChatScreenState extends State<ChatScreen> {
   // Upload image and add message
   Future<void> _addImageMessage(File imageFile) async {
     try {
-      final userData = await SharedPrefsService().getUserData();
+      final box = Hive.box('TTMobileApp');
+      final userData = await json.decode(box.get('userData'));
 
       // Fetch attachment key
       final attachmentKey = await _getAttachmentKey();
