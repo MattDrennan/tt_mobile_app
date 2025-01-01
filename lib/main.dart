@@ -339,7 +339,7 @@ class _LoginPageState extends State<LoginPage> {
                 onPressed: _login,
                 child: const Text('Login'),
               ),
-              const SizedBox(height: 10), // Space between button and links
+              const SizedBox(height: 50), // Space between button and links
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
@@ -460,6 +460,39 @@ class MyHomePage extends StatelessWidget {
                 onPressed: () => _logout(context),
                 child: const Text('Log Out'),
               ),
+            ),
+            const SizedBox(height: 50), // Space between button and links
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                GestureDetector(
+                  onTap: () {
+                    launchUrl(Uri.parse(
+                        'https://www.fl501st.com/boards/index.php?help/terms/'));
+                  },
+                  child: const Text(
+                    'Terms and Rules',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 20), // Space between links
+                GestureDetector(
+                  onTap: () {
+                    launchUrl(Uri.parse(
+                        'https://www.fl501st.com/boards/index.php?help/privacy-policy/'));
+                  },
+                  child: const Text(
+                    'Privacy Policy',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
