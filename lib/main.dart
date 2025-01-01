@@ -18,6 +18,7 @@ import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:hive/hive.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
@@ -337,6 +338,39 @@ class _LoginPageState extends State<LoginPage> {
               ElevatedButton(
                 onPressed: _login,
                 child: const Text('Login'),
+              ),
+              const SizedBox(height: 10), // Space between button and links
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  GestureDetector(
+                    onTap: () {
+                      launchUrl(Uri.parse(
+                          'https://www.fl501st.com/boards/index.php?help/terms/'));
+                    },
+                    child: const Text(
+                      'Terms and Rules',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 20), // Space between links
+                  GestureDetector(
+                    onTap: () {
+                      launchUrl(Uri.parse(
+                          'https://www.fl501st.com/boards/index.php?help/privacy-policy/'));
+                    },
+                    child: const Text(
+                      'Privacy Policy',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -849,8 +883,7 @@ class _ChatScreenState extends State<ChatScreen> {
         customMessageBuilder: (message, {required int messageWidth}) {
           final isSentByUser = message.author.id == _user.id;
 
-          if (message is types.CustomMessage &&
-              message.metadata != null &&
+          if (message.metadata != null &&
               message.metadata!.containsKey('html')) {
             final htmlContent = message.metadata!['html'];
 
