@@ -712,18 +712,68 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  void _blockUser(String userId) {
-    print('Blocked User ID: $userId');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('User blocked successfully!')),
+  Future<void> _blockUser(String userId) async {
+    final box = Hive.box('TTMobileApp');
+
+    // Retrieve and decode user data
+    final rawData = box.get('userData');
+    final userData = json.decode(rawData);
+
+    final response = await http.post(
+      Uri.parse('https://www.fl501st.com/boards/mobileapi.php'
+          '?action=block_user'
+          '&blocker_id=${userData['user']['user_id']}'
+          '&blocked_id=$userId'),
     );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('User blocked successfully!')),
+      );
+    } else {
+      print(response.body);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to block user!')),
+      );
+    }
   }
 
-  void _reportMessage(String messageId) {
-    print('Reported Message ID: $messageId');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Message reported successfully!')),
+  Future<void> _reportMessage(String messageId) async {
+    final box = Hive.box('TTMobileApp');
+
+    // Retrieve and decode user data
+    final rawData = box.get('userData');
+    final userData = json.decode(rawData);
+
+    // Show a popup to input the report reason
+    String? reportReason = await _showInputDialog(context);
+
+    // Check if the user canceled the dialog or entered nothing
+    if (reportReason == null || reportReason.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Report reason cannot be empty!')),
+      );
+      return; // Stop further execution
+    }
+
+    final response = await http.post(
+      Uri.parse('https://www.fl501st.com/boards/mobileapi.php'
+          '?action=report_post'
+          '&reporter_id=${userData['user']['user_id']}'
+          '&message=$reportReason'
+          '&post_id=$messageId'),
     );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Message reported successfully!')),
+      );
+    } else {
+      print(response.body);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to report message!')),
+      );
+    }
   }
 
   Future<String?> _getAttachmentKey() async {
@@ -1095,4 +1145,32 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
+}
+
+Future<String?> _showInputDialog(BuildContext context) async {
+  TextEditingController textController = TextEditingController();
+
+  return showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Report Message'),
+      content: TextField(
+        controller: textController,
+        decoration: const InputDecoration(
+          hintText: 'Enter reason for reporting...',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null), // Cancel
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () =>
+              Navigator.of(context).pop(textController.text), // Submit
+          child: const Text('Submit'),
+        ),
+      ],
+    ),
+  );
 }
