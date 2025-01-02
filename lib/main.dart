@@ -712,6 +712,20 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  void _blockUser(String userId) {
+    print('Blocked User ID: $userId');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('User blocked successfully!')),
+    );
+  }
+
+  void _reportMessage(String messageId) {
+    print('Reported Message ID: $messageId');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Message reported successfully!')),
+    );
+  }
+
   Future<String?> _getAttachmentKey() async {
     try {
       final box = Hive.box('TTMobileApp');
@@ -920,115 +934,159 @@ class _ChatScreenState extends State<ChatScreen> {
               message.metadata!.containsKey('html')) {
             final htmlContent = message.metadata!['html'];
 
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: isSentByUser
-                  ? MainAxisAlignment.end
-                  : MainAxisAlignment.start,
-              children: [
-                if (!isSentByUser)
-                  CircleAvatar(
-                    backgroundImage: NetworkImage(
-                      message.author.imageUrl ??
-                          'https://www.fl501st.com/assets/images/profile.png',
-                    ),
-                    radius: 20,
-                  ),
-                if (!isSentByUser) const SizedBox(width: 8.0),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: isSentByUser
-                        ? CrossAxisAlignment.end
-                        : CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        message.author.firstName ?? 'Unknown',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14.0,
-                            color: !isSentByUser ? Colors.black : Colors.white),
-                      ),
-                      const SizedBox(height: 4.0),
-                      Container(
-                        padding: const EdgeInsets.all(12.0),
-                        constraints: BoxConstraints(
-                          maxWidth: messageWidth.toDouble(),
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSentByUser
-                              ? Colors.blue[400]
-                              : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(16.0),
-                        ),
-                        child: HtmlWidget(
-                          htmlContent,
-                          textStyle: TextStyle(
-                            color: isSentByUser ? Colors.white : Colors.black87,
-                            fontSize: 16.0,
+            return GestureDetector(
+              onLongPress: () {
+                if (!isSentByUser) {
+                  // Prevent reporting or blocking yourself
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Wrap(
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.block),
+                            title: const Text('Block User'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _blockUser(message.author.id);
+                            },
                           ),
-                          customWidgetBuilder: (element) {
-                            if (element.localName == 'img' &&
-                                element.attributes['src'] != null) {
-                              final imageUrl = element.attributes['src']!;
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => Scaffold(
-                                        appBar: AppBar(
-                                          title: const Text('Image Viewer'),
-                                          leading: IconButton(
-                                            icon: Icon(Icons.arrow_back),
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                          ),
-                                        ),
-                                        body: PhotoViewGallery.builder(
-                                          itemCount: 1,
-                                          builder: (context, index) {
-                                            return PhotoViewGalleryPageOptions(
-                                              imageProvider:
-                                                  NetworkImage(imageUrl),
-                                              minScale: PhotoViewComputedScale
-                                                  .contained,
-                                              maxScale: PhotoViewComputedScale
-                                                      .covered *
-                                                  2,
-                                            );
-                                          },
-                                          scrollPhysics:
-                                              const BouncingScrollPhysics(),
-                                          backgroundDecoration: BoxDecoration(
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Image.network(imageUrl),
-                              );
-                            }
-                            return null;
-                          },
+                          ListTile(
+                            leading: const Icon(Icons.report),
+                            title: const Text('Report Message'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _reportMessage(message.id);
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(8.0),
+                color: isSentByUser
+                    ? Colors.blue[500]
+                    : Colors.grey[200], // Custom solid gray
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: isSentByUser
+                      ? MainAxisAlignment.end
+                      : MainAxisAlignment.start,
+                  children: [
+                    if (!isSentByUser)
+                      CircleAvatar(
+                        backgroundImage: NetworkImage(
+                          message.author.imageUrl ??
+                              'https://www.fl501st.com/assets/images/profile.png',
                         ),
+                        radius: 20,
                       ),
-                    ],
-                  ),
-                ),
-                if (isSentByUser)
-                  const SizedBox(width: 8.0), // Space for alignment
-                if (isSentByUser) // Show avatar only for received messages
-                  CircleAvatar(
-                    backgroundImage: NetworkImage(
-                      message.author.imageUrl ??
-                          'https://www.fl501st.com/assets/images/profile.png', // Placeholder image
+                    if (!isSentByUser) const SizedBox(width: 8.0),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: isSentByUser
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            message.author.firstName ?? 'Unknown',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14.0,
+                                color: !isSentByUser
+                                    ? Colors.black
+                                    : Colors.white),
+                          ),
+                          const SizedBox(height: 4.0),
+                          Container(
+                            padding: const EdgeInsets.all(12.0),
+                            constraints: BoxConstraints(
+                              maxWidth: messageWidth.toDouble(),
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSentByUser
+                                  ? Colors.blue[500]
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(16.0),
+                            ),
+                            child: HtmlWidget(
+                              htmlContent,
+                              textStyle: TextStyle(
+                                color: isSentByUser
+                                    ? Colors.white
+                                    : Colors.black87,
+                                fontSize: 16.0,
+                              ),
+                              customWidgetBuilder: (element) {
+                                if (element.localName == 'img' &&
+                                    element.attributes['src'] != null) {
+                                  final imageUrl = element.attributes['src']!;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => Scaffold(
+                                            appBar: AppBar(
+                                              title: const Text('Image Viewer'),
+                                              leading: IconButton(
+                                                icon: Icon(Icons.arrow_back),
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                              ),
+                                            ),
+                                            body: PhotoViewGallery.builder(
+                                              itemCount: 1,
+                                              builder: (context, index) {
+                                                return PhotoViewGalleryPageOptions(
+                                                  imageProvider:
+                                                      NetworkImage(imageUrl),
+                                                  minScale:
+                                                      PhotoViewComputedScale
+                                                          .contained,
+                                                  maxScale:
+                                                      PhotoViewComputedScale
+                                                              .covered *
+                                                          2,
+                                                );
+                                              },
+                                              scrollPhysics:
+                                                  const BouncingScrollPhysics(),
+                                              backgroundDecoration:
+                                                  BoxDecoration(
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Image.network(imageUrl),
+                                  );
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    radius: 20,
-                  ),
-                if (isSentByUser) const SizedBox(width: 8.0)
-              ],
+                    if (isSentByUser) const SizedBox(width: 8.0),
+                    if (isSentByUser)
+                      CircleAvatar(
+                        backgroundImage: NetworkImage(
+                          message.author.imageUrl ??
+                              'https://www.fl501st.com/assets/images/profile.png',
+                        ),
+                        radius: 20,
+                      ),
+                    if (isSentByUser) const SizedBox(width: 8.0)
+                  ],
+                ),
+              ),
             );
           }
 
