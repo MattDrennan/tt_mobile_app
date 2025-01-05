@@ -15,7 +15,7 @@ You are free to download, modify, and use freely for non-commerical purposes.
 FORUM_URL=https://www.fl501st.com/boards/
 API_USER=1
 API_KEY=XENFORO_API_KEY
-```
+``` 
 
 	<li>Set up a webhook in Xenforo:</li>
 
