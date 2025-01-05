@@ -11,23 +11,23 @@ You are free to download, modify, and use freely for non-commerical purposes.
 	<li>All SQL data is included with the install of Troop Tracker.</li>
 	<li>Create a .env file in the root directory and put this inside:</li>
 
-```
-FORUM_URL=https://www.fl501st.com/boards/
-API_USER=1
-API_KEY=XENFORO_API_KEY
-``` 
+	<pre>
+		FORUM_URL=https://www.fl501st.com/boards/
+		API_USER=1
+		API_KEY=XENFORO_API_KEY
+	</pre>
 
 	<li>Set up a webhook in Xenforo:</li>
 
-```
-Title: Post Insert
-Description: For push notifications
-Target URL: https://www.fl501st.com/troop-tracker/script/php/webhook/post_insert.php
-Events: Send only specific events->post.insert
-Content type: application/json
-Enable SSL verification (yes)
-Webhook is active (yes)
-```
+	<pre>
+		Title: Post Insert
+		Description: For push notifications
+		Target URL: https://www.fl501st.com/troop-tracker/script/php/webhook/post_insert.php
+		Events: Send only specific events->post.insert
+		Content type: application/json
+		Enable SSL verification (yes)
+		Webhook is active (yes)
+	</pre>
 </ol>
 
 ## Please contact me with any questions, comments, or concerns
