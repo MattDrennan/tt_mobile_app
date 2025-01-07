@@ -82,6 +82,14 @@ flutter:
   assets:
     - .env
     - assets/logo.png
+    - assets/icons/501.png
+    - assets/icons/bluestar.png
+    - assets/icons/everglades_icon.png
+    - assets/icons/garrison_icon.png
+    - assets/icons/makaze_icon.png
+    - assets/icons/parjai_icon.png
+    - assets/icons/squad7_icon.png
+    - assets/icons/tampabay_icon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
