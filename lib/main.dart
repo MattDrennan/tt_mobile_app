@@ -19,10 +19,16 @@ import 'package:http_parser/http_parser.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:hive/hive.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_bbcode/flutter_bbcode.dart';
+import 'package:html_unescape/html_unescape.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// Unescape HTML entities
+final unescape = HtmlUnescape();
 
 Future<void> main() async {
   // Load environment variables
@@ -173,6 +179,34 @@ void initializeNotifications() {
   flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
   );
+}
+
+class SizeTag extends StyleTag {
+  SizeTag() : super('size');
+
+  @override
+  TextStyle transformStyle(
+      TextStyle oldStyle, Map<String, String>? attributes) {
+    if (attributes == null || attributes.isEmpty) {
+      return oldStyle;
+    }
+
+    String? sizeValue = attributes.entries.first.value;
+    double? fontSize;
+
+    try {
+      fontSize = double.parse(sizeValue);
+    } catch (e) {
+      fontSize = null; // Invalid size input
+    }
+
+    if (fontSize != null && fontSize > 0) {
+      return oldStyle.copyWith(fontSize: fontSize);
+    }
+
+    // Fallback to default size if parsing fails
+    return oldStyle;
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -507,6 +541,177 @@ class MyHomePage extends StatelessWidget {
   }
 }
 
+class EventPage extends StatefulWidget {
+  final int troopid; // Accept troop ID as a parameter
+
+  const EventPage({super.key, required this.troopid});
+
+  @override
+  State<EventPage> createState() => _EventPageState();
+}
+
+class _EventPageState extends State<EventPage> {
+  Map<String, dynamic>? troopData;
+
+  // Helper to format date
+  String formatDate(String? dateTime) {
+    if (dateTime == null || dateTime.isEmpty) {
+      return 'N/A'; // Return 'N/A' for missing or invalid dates
+    }
+
+    try {
+      DateTime dt = DateFormat("yyyy-MM-dd HH:mm:ss").parse(dateTime);
+      return DateFormat('MM/dd/yyyy h:mm a').format(dt);
+    } catch (e) {
+      return 'Invalid Date'; // Return a fallback message if parsing fails
+    }
+  }
+
+  Future<void> fetchEvent(int troopid) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://www.fl501st.com/troop-tracker/mobileapi.php?troopid=$troopid&action=event'),
+      );
+
+      if (!mounted) return; // Ensure widget is mounted before proceeding
+
+      print(response.body);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          troopData = data;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load troop.')),
+        );
+      }
+    } on TimeoutException catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request timed out. Please try again.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEvent(widget.troopid); // Fetch data when the page loads
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var extenedStyle =
+        defaultBBStylesheet(textStyle: const TextStyle(color: Colors.white))
+            .addTag(SizeTag());
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          unescape.convert(troopData?['name'] ?? ''),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Basic Details
+            Text(
+              troopData?['venue'] ?? '',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text("Location: ${troopData?['location']}"),
+            Text("Start: ${formatDate(troopData?['dateStart'] ?? '')}"),
+            Text("End: ${formatDate(troopData?['dateEnd'] ?? '')}"),
+            Text("Website: ${troopData?['website'] ?? ''}"),
+            const SizedBox(height: 10),
+
+            // Attendance Details
+            Text(
+              "Attendance Details",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            Text("Attendees: ${troopData?['numberOfAttend'] ?? ''}"),
+            Text("Requested: ${troopData?['requestedNumber'] ?? ''}"),
+            Text(
+                "Requested Characters: ${troopData?['requestedCharacter'] ?? ''}"),
+            const SizedBox(height: 10),
+
+            // Amenities
+            Text(
+              "Amenities",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            Text("Restrooms: ${troopData?['amenities'] ?? ''}"),
+            Text(
+                "Secure Changing Area: ${(troopData?['secureChanging'] ?? 0) == 1 ? 'Yes' : 'No'}"),
+            Text(
+                "Blasters Allowed: ${(troopData?['blasters'] ?? 0) == 1 ? 'Yes' : 'No'}"),
+            Text(
+                "Lightsabers Allowed: ${(troopData?['lightsabers'] ?? 0) == 1 ? 'Yes' : 'No'}"),
+            Text(
+                "Parking Available: ${(troopData?['parking'] ?? 0) == 1 ? 'Yes' : 'No'}"),
+            Text(
+                "Mobility Accessible: ${(troopData?['mobility'] ?? 0) == 1 ? 'Yes' : 'No'}"),
+            const SizedBox(height: 10),
+
+            // POC Details
+            Text(
+              "Points of Contact",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            Text("Referred By: ${troopData?['referred'] ?? ''}"),
+            Text("POC Name: ${troopData?['poc'] ?? ''}"),
+            const SizedBox(height: 10),
+
+            // Comments Section
+            Text(
+              "Additional Information",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            BBCodeText(
+                data: troopData?['comments'] ?? '', stylesheet: extenedStyle),
+            const Divider(),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatScreen(
+                          troopName: unescape.convert(troopData?['name'] ?? ''),
+                          threadId: troopData?['thread_id'] ?? '',
+                          postId: troopData?['post_id'] ?? ''),
+                    ),
+                  );
+                },
+                child: Text('Go To Discussion'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class TroopPage extends StatefulWidget {
   const TroopPage({super.key});
 
@@ -564,7 +769,6 @@ class _TroopPageState extends State<TroopPage> {
 
   @override
   Widget build(BuildContext context) {
-    print(selectedSquad);
     return Scaffold(
         appBar: AppBar(
           title: const Text('Troops'),
@@ -577,12 +781,12 @@ class _TroopPageState extends State<TroopPage> {
                 children: List.generate(6, (int indexSquad) {
                   // Map index to squad name
                   const squadNames = [
-                    'Florida Garrison',
+                    'All',
                     'Everglades Squad',
-                    'Makaze',
-                    'Parjai',
+                    'Makaze Squad',
+                    'Parjai Squad',
                     'Squad 7',
-                    'Tampa'
+                    'Tampa Bay Squad'
                   ];
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -607,14 +811,12 @@ class _TroopPageState extends State<TroopPage> {
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatScreen(
-                                    troopName: troops[index]['name'],
-                                    threadId: troops[index]['thread_id'],
-                                    postId: troops[index]['post_id']),
-                              ),
-                            );
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EventPage(
+                                    troopid: troops[index]['troopid'],
+                                  ),
+                                ));
                           },
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -635,7 +837,8 @@ class _TroopPageState extends State<TroopPage> {
                                   height: 24,
                                 ),
                               ),
-                              Text(troops[index]['name'] ?? 'Unknown Name'),
+                              Text(unescape
+                                  .convert(troops[index]['name'] ?? '')),
                               SizedBox(height: 5),
                               Text(
                                 (troops[index]['trooper_count'] ?? 0) ==
@@ -718,13 +921,14 @@ class _ChatPageState extends State<ChatPage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => ChatScreen(
-                          troopName: troops[index]['name'],
+                          troopName:
+                              unescape.convert(troops[index]['name'] ?? ''),
                           threadId: troops[index]['thread_id'],
                           postId: troops[index]['post_id']),
                     ),
                   );
                 },
-                child: Text(troops[index]['name']),
+                child: Text(unescape.convert(troops[index]['name'] ?? '')),
               ),
             ),
           ),
