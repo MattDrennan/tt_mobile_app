@@ -552,6 +552,7 @@ class EventPage extends StatefulWidget {
 
 class _EventPageState extends State<EventPage> {
   Map<String, dynamic>? troopData;
+  List<dynamic>? rosterData;
 
   // Helper to format date
   String formatDate(String? dateTime) {
@@ -575,8 +576,6 @@ class _EventPageState extends State<EventPage> {
       );
 
       if (!mounted) return; // Ensure widget is mounted before proceeding
-
-      print(response.body);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -603,10 +602,46 @@ class _EventPageState extends State<EventPage> {
     }
   }
 
+  Future<void> fetchRoster(int troopid) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://www.fl501st.com/troop-tracker/mobileapi.php?troopid=$troopid&action=get_roster_for_event'),
+      );
+
+      if (!mounted) return; // Ensure widget is mounted before proceeding
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          rosterData = data;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load roster.')),
+        );
+      }
+    } on TimeoutException catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request timed out. Please try again.')),
+        );
+      }
+    } catch (e) {
+      print(e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    fetchEvent(widget.troopid); // Fetch data when the page loads
+    fetchEvent(widget.troopid);
+    fetchRoster(widget.troopid);
   }
 
   @override
@@ -686,6 +721,35 @@ class _EventPageState extends State<EventPage> {
             const Divider(),
             BBCodeText(
                 data: troopData?['comments'] ?? '', stylesheet: extenedStyle),
+            const Divider(),
+            const SizedBox(height: 10),
+            // Roster Section
+            if (rosterData != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Roster",
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const Divider(),
+                  ...rosterData!.map((member) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Trooper ID: ${member['trooperid']}"),
+                        Text("Costume: ${member['costume']}"),
+                        Text(
+                            "Backup Costume: ${member['costume_backup'] ?? 'None'}"),
+                        Text(
+                            "Signup Time: ${formatDate(member['signuptime'])}"),
+                        const Divider(),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
             const Divider(),
             const SizedBox(height: 10),
             SizedBox(
