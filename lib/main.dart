@@ -27,6 +27,8 @@ import 'tags/ColorTag.dart';
 import 'tags/UrlTag.dart';
 import 'tags/SizeTag.dart';
 
+import 'custom/LocationWidget.dart';
+
 // Global
 types.User _user = const types.User(id: 'user');
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -646,8 +648,8 @@ class _EventPageState extends State<EventPage> {
               unescape.convert(troopData?['venue'] ?? ''),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            LocationWidget(location: troopData?['location']),
             const Divider(),
-            Text("Location: ${unescape.convert(troopData?['location'] ?? '')}"),
             Text("Start: ${formatDate(troopData?['dateStart'] ?? '')}"),
             Text("End: ${formatDate(troopData?['dateEnd'] ?? '')}"),
             Text(
