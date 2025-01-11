@@ -665,7 +665,7 @@ class _EventPageState extends State<EventPage> {
               troopData?['venue'] ?? '',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10),
+            const Divider(),
             Text("Location: ${troopData?['location']}"),
             Text("Start: ${formatDate(troopData?['dateStart'] ?? '')}"),
             Text("End: ${formatDate(troopData?['dateEnd'] ?? '')}"),
@@ -690,7 +690,7 @@ class _EventPageState extends State<EventPage> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Divider(),
-            Text("Restrooms: ${troopData?['amenities'] ?? ''}"),
+            Text("Restrooms: ${troopData?['amenities'] ?? 'N/A'}"),
             Text(
                 "Secure Changing Area: ${(troopData?['secureChanging'] ?? 0) == 1 ? 'Yes' : 'No'}"),
             Text(
@@ -710,7 +710,7 @@ class _EventPageState extends State<EventPage> {
             ),
             const Divider(),
             Text("Referred By: ${troopData?['referred'] ?? ''}"),
-            Text("POC Name: ${troopData?['poc'] ?? ''}"),
+            //Text("POC Name: ${troopData?['poc'] ?? ''}"),
             const SizedBox(height: 10),
 
             // Comments Section
@@ -721,35 +721,144 @@ class _EventPageState extends State<EventPage> {
             const Divider(),
             BBCodeText(
                 data: troopData?['comments'] ?? '', stylesheet: extenedStyle),
-            const Divider(),
-            const SizedBox(height: 10),
             // Roster Section
-            if (rosterData != null)
+            if (rosterData != null && rosterData!.isNotEmpty)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Roster",
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
                   const Divider(),
-                  ...rosterData!.map((member) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Trooper ID: ${member['trooperid']}"),
-                        Text("Costume: ${member['costume']}"),
-                        Text(
-                            "Backup Costume: ${member['costume_backup'] ?? 'None'}"),
-                        Text(
-                            "Signup Time: ${formatDate(member['signuptime'])}"),
-                        const Divider(),
-                      ],
-                    );
-                  }).toList(),
+                  Card(
+                    color: Colors.grey[900],
+                    elevation: 2,
+                    margin: const EdgeInsets.symmetric(vertical: 10),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          headingRowColor: MaterialStateProperty.resolveWith(
+                              (states) => Colors.grey[800]),
+                          columns: const [
+                            DataColumn(label: Text('Status')),
+                            DataColumn(label: Text('Trooper Name')),
+                            DataColumn(label: Text('TKID')),
+                            DataColumn(label: Text('Costume')),
+                            DataColumn(label: Text('Backup Costume')),
+                            DataColumn(label: Text('Signup Time')),
+                          ],
+                          rows: rosterData!.map((member) {
+                            final String status =
+                                member['status_formatted']?.toLowerCase() ?? '';
+                            final bool isCanceled = status == 'canceled';
+                            final bool isTentative = status == 'tentative';
+                            final bool isStandBy = status == 'stand by';
+
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(
+                                  member['status_formatted'].toString() ??
+                                      'N/A',
+                                  style: TextStyle(
+                                    color: isCanceled
+                                        ? Colors.red
+                                        : isTentative
+                                            ? Colors.purple
+                                            : isStandBy
+                                                ? Colors.orange
+                                                : null,
+                                    decoration: isCanceled
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                )),
+                                DataCell(Text(
+                                  member['trooper_name'].toString() ?? 'N/A',
+                                  style: TextStyle(
+                                    color: isCanceled
+                                        ? Colors.red
+                                        : isTentative
+                                            ? Colors.purple
+                                            : isStandBy
+                                                ? Colors.orange
+                                                : null,
+                                    decoration: isCanceled
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                )),
+                                DataCell(Text(
+                                  member['tkid_formatted'].toString() ?? 'N/A',
+                                  style: TextStyle(
+                                    color: isCanceled
+                                        ? Colors.red
+                                        : isTentative
+                                            ? Colors.purple
+                                            : isStandBy
+                                                ? Colors.orange
+                                                : null,
+                                    decoration: isCanceled
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                )),
+                                DataCell(Text(
+                                  member['costume_name'].toString() ?? 'N/A',
+                                  style: TextStyle(
+                                    color: isCanceled
+                                        ? Colors.red
+                                        : isTentative
+                                            ? Colors.purple
+                                            : isStandBy
+                                                ? Colors.orange
+                                                : null,
+                                    decoration: isCanceled
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                )),
+                                DataCell(Text(
+                                  member['backup_costume_name'] != null
+                                      ? member['backup_costume_name'].toString()
+                                      : 'N/A',
+                                  style: TextStyle(
+                                    color: isCanceled
+                                        ? Colors.red
+                                        : isTentative
+                                            ? Colors.purple
+                                            : isStandBy
+                                                ? Colors.orange
+                                                : null,
+                                    decoration: isCanceled
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                )),
+                                DataCell(Text(
+                                  formatDate(member['signuptime']) ?? 'N/A',
+                                  style: TextStyle(
+                                    color: isCanceled
+                                        ? Colors.red
+                                        : isTentative
+                                            ? Colors.purple
+                                            : isStandBy
+                                                ? Colors.orange
+                                                : null,
+                                    decoration: isCanceled
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                )),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
-              ),
+              )
+            else
+              Text("No roster data available."),
             const Divider(),
             const SizedBox(height: 10),
             SizedBox(
