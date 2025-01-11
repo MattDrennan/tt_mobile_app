@@ -20,10 +20,11 @@ import 'package:photo_view/photo_view.dart';
 import 'package:hive/hive.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_bbcode/flutter_bbcode.dart' hide ColorTag;
+import 'package:flutter_bbcode/flutter_bbcode.dart' hide ColorTag, UrlTag;
 import 'package:html_unescape/html_unescape.dart';
 
 import 'tags/ColorTag.dart';
+import 'tags/UrlTag.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
@@ -652,7 +653,7 @@ class _EventPageState extends State<EventPage> {
       fontSize: 14, // Set the font size you want
       color: Colors.white, // Retain your desired text color
     ),
-  ).addTag(SizeTag()).replaceTag(ColorTag());
+  ).addTag(SizeTag()).replaceTag(ColorTag()).replaceTag(UrlTag());
 
   @override
   Widget build(BuildContext context) {
