@@ -20,8 +20,10 @@ import 'package:photo_view/photo_view.dart';
 import 'package:hive/hive.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_bbcode/flutter_bbcode.dart';
+import 'package:flutter_bbcode/flutter_bbcode.dart' hide ColorTag;
 import 'package:html_unescape/html_unescape.dart';
+
+import 'tags/ColorTag.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
@@ -644,11 +646,16 @@ class _EventPageState extends State<EventPage> {
     fetchRoster(widget.troopid);
   }
 
+  // BBCode default stlye sheet
+  final customStylesheet = defaultBBStylesheet(
+    textStyle: const TextStyle(
+      fontSize: 14, // Set the font size you want
+      color: Colors.white, // Retain your desired text color
+    ),
+  ).addTag(SizeTag()).replaceTag(ColorTag());
+
   @override
   Widget build(BuildContext context) {
-    var extenedStyle =
-        defaultBBStylesheet(textStyle: const TextStyle(color: Colors.white))
-            .addTag(SizeTag());
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -662,14 +669,15 @@ class _EventPageState extends State<EventPage> {
           children: [
             // Basic Details
             Text(
-              troopData?['venue'] ?? '',
+              unescape.convert(troopData?['venue'] ?? ''),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Divider(),
-            Text("Location: ${troopData?['location']}"),
+            Text("Location: ${unescape.convert(troopData?['location'] ?? '')}"),
             Text("Start: ${formatDate(troopData?['dateStart'] ?? '')}"),
             Text("End: ${formatDate(troopData?['dateEnd'] ?? '')}"),
-            Text("Website: ${troopData?['website'] ?? ''}"),
+            Text(
+                "Website: ${troopData?['website']?.isEmpty ?? true ? 'N/A' : troopData?['website']}"),
             const SizedBox(height: 10),
 
             // Attendance Details
@@ -720,7 +728,8 @@ class _EventPageState extends State<EventPage> {
             ),
             const Divider(),
             BBCodeText(
-                data: troopData?['comments'] ?? '', stylesheet: extenedStyle),
+                data: unescape.convert(troopData?['comments'] ?? ''),
+                stylesheet: customStylesheet),
             // Roster Section
             if (rosterData != null && rosterData!.isNotEmpty)
               Column(
