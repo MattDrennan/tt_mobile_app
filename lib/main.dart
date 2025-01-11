@@ -28,6 +28,7 @@ import 'tags/UrlTag.dart';
 import 'tags/SizeTag.dart';
 
 import 'custom/LocationWidget.dart';
+import 'custom/InfoRow.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
@@ -650,10 +651,20 @@ class _EventPageState extends State<EventPage> {
             ),
             LocationWidget(location: troopData?['location']),
             const Divider(),
-            Text("Start: ${formatDate(troopData?['dateStart'] ?? '')}"),
-            Text("End: ${formatDate(troopData?['dateEnd'] ?? '')}"),
-            Text(
-                "Website: ${troopData?['website']?.isEmpty ?? true ? 'N/A' : troopData?['website']}"),
+            InfoRow(
+              label: "Start",
+              value: formatDate(troopData?['dateStart'] ?? 'N/A'),
+            ),
+            InfoRow(
+              label: "End",
+              value: formatDate(troopData?['dateEnd'] ?? 'N/A'),
+            ),
+            InfoRow(
+              label: "Website",
+              value: troopData?['website']?.isEmpty ?? true
+                  ? 'N/A'
+                  : troopData?['website'],
+            ),
             const SizedBox(height: 10),
 
             // Attendance Details
@@ -662,10 +673,18 @@ class _EventPageState extends State<EventPage> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Divider(),
-            Text("Attendees: ${troopData?['numberOfAttend'] ?? ''}"),
-            Text("Requested: ${troopData?['requestedNumber'] ?? ''}"),
-            Text(
-                "Requested Characters: ${troopData?['requestedCharacter'] ?? ''}"),
+            InfoRow(
+              label: "Attendees",
+              value: troopData?['numberOfAttend'].toString() ?? 'N/A',
+            ),
+            InfoRow(
+              label: "Requested",
+              value: troopData?['requestedNumber'].toString() ?? 'N/A',
+            ),
+            InfoRow(
+              label: "Requested Characters",
+              value: troopData?['requestedCharacter'].toString() ?? 'N/A',
+            ),
             const SizedBox(height: 10),
 
             // Amenities
