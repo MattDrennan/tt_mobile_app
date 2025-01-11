@@ -16,8 +16,9 @@ class InfoRow extends StatelessWidget {
   }) : super(key: key);
 
   bool _isValidUrl(String url) {
-    final urlPattern = r'^(https?:\/\/)?([\w\.-]+)\.([a-z\.]{2,})$';
-    final regExp = RegExp(urlPattern);
+    final urlPattern =
+        r'^(https?:\/\/)?([\w\-]+\.)+[\w\-]+(\/[\w\-.,@?^=%&:/~+#]*)?$';
+    final regExp = RegExp(urlPattern, caseSensitive: false);
     return regExp.hasMatch(url);
   }
 
