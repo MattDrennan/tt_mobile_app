@@ -25,6 +25,7 @@ import 'package:html_unescape/html_unescape.dart';
 
 import 'tags/ColorTag.dart';
 import 'tags/UrlTag.dart';
+import 'tags/SizeTag.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
@@ -182,34 +183,6 @@ void initializeNotifications() {
   flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
   );
-}
-
-class SizeTag extends StyleTag {
-  SizeTag() : super('size');
-
-  @override
-  TextStyle transformStyle(
-      TextStyle oldStyle, Map<String, String>? attributes) {
-    if (attributes == null || attributes.isEmpty) {
-      return oldStyle;
-    }
-
-    String? sizeValue = attributes.entries.first.value;
-    double? fontSize;
-
-    try {
-      fontSize = double.parse(sizeValue);
-    } catch (e) {
-      fontSize = null; // Invalid size input
-    }
-
-    if (fontSize != null && fontSize > 0) {
-      return oldStyle.copyWith(fontSize: fontSize);
-    }
-
-    // Fallback to default size if parsing fails
-    return oldStyle;
-  }
 }
 
 class MyApp extends StatelessWidget {
