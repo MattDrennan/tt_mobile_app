@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class InfoRow extends StatelessWidget {
   final String label;
-  final String value;
+  final String? value; // Allow nullable values
   final TextStyle? labelStyle;
   final TextStyle? valueStyle;
 
@@ -28,14 +28,16 @@ class InfoRow extends StatelessWidget {
       await launch(fullUrl);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open the link: $url')),
+        SnackBar(content: Text('Could not open the link: $fullUrl')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLink = _isValidUrl(value);
+    // Check if the value is null or empty, and default to "N/A"
+    final displayValue = (value?.isEmpty ?? true) ? 'N/A' : value!;
+    final isLink = _isValidUrl(displayValue);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -53,9 +55,9 @@ class InfoRow extends StatelessWidget {
             flex: 3,
             child: isLink
                 ? GestureDetector(
-                    onTap: () => _launchUrl(context, value),
+                    onTap: () => _launchUrl(context, displayValue),
                     child: Text(
-                      value,
+                      displayValue,
                       style: valueStyle ??
                           const TextStyle(
                             color: Colors.blue,
@@ -64,7 +66,7 @@ class InfoRow extends StatelessWidget {
                     ),
                   )
                 : Text(
-                    value,
+                    displayValue,
                     style: valueStyle ?? const TextStyle(color: Colors.grey),
                   ),
           ),

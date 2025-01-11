@@ -693,17 +693,30 @@ class _EventPageState extends State<EventPage> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Divider(),
-            Text("Restrooms: ${troopData?['amenities'] ?? 'N/A'}"),
-            Text(
-                "Secure Changing Area: ${(troopData?['secureChanging'] ?? 0) == 1 ? 'Yes' : 'No'}"),
-            Text(
-                "Blasters Allowed: ${(troopData?['blasters'] ?? 0) == 1 ? 'Yes' : 'No'}"),
-            Text(
-                "Lightsabers Allowed: ${(troopData?['lightsabers'] ?? 0) == 1 ? 'Yes' : 'No'}"),
-            Text(
-                "Parking Available: ${(troopData?['parking'] ?? 0) == 1 ? 'Yes' : 'No'}"),
-            Text(
-                "Mobility Accessible: ${(troopData?['mobility'] ?? 0) == 1 ? 'Yes' : 'No'}"),
+            InfoRow(
+              label: "Restrooms",
+              value: troopData?['amenities'] ?? 'N/A',
+            ),
+            InfoRow(
+              label: "Secure Changing Area",
+              value: (troopData?['secureChanging'] ?? 0) == 1 ? 'Yes' : 'No',
+            ),
+            InfoRow(
+              label: "Blasters Allowed",
+              value: (troopData?['blasters'] ?? 0) == 1 ? 'Yes' : 'No',
+            ),
+            InfoRow(
+              label: "Lightsabers Allowed",
+              value: (troopData?['lightsabers'] ?? 0) == 1 ? 'Yes' : 'No',
+            ),
+            InfoRow(
+              label: "Parking Available",
+              value: (troopData?['parking'] ?? 0) == 1 ? 'Yes' : 'No',
+            ),
+            InfoRow(
+              label: "Mobility Accessible",
+              value: (troopData?['mobility'] ?? 0) == 1 ? 'Yes' : 'No',
+            ),
             const SizedBox(height: 10),
 
             // POC Details
@@ -712,7 +725,10 @@ class _EventPageState extends State<EventPage> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Divider(),
-            Text("Referred By: ${troopData?['referred'] ?? ''}"),
+            InfoRow(
+              label: "Referred By",
+              value: troopData?['referred'] ?? '',
+            ),
             //Text("POC Name: ${troopData?['poc'] ?? ''}"),
             const SizedBox(height: 10),
 
