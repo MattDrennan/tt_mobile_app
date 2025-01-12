@@ -8,12 +8,12 @@ class InfoRow extends StatelessWidget {
   final TextStyle? valueStyle;
 
   const InfoRow({
-    Key? key,
+    super.key,
     required this.label,
     required this.value,
     this.labelStyle,
     this.valueStyle,
-  }) : super(key: key);
+  });
 
   bool _isValidUrl(String url) {
     final urlPattern =

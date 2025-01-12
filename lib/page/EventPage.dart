@@ -253,7 +253,7 @@ class _EventPageState extends State<EventPage> {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
-                          headingRowColor: MaterialStateProperty.resolveWith(
+                          headingRowColor: WidgetStateProperty.resolveWith(
                               (states) => Colors.grey[800]),
                           columns: const [
                             DataColumn(label: Text('Status')),

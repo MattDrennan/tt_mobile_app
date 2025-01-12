@@ -3,25 +3,17 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'dart:convert';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:image_picker/image_picker.dart' as imagePicker;
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:hive/hive.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:intl/intl.dart';
-import 'package:flutter_bbcode/flutter_bbcode.dart' hide ColorTag, UrlTag;
-import 'package:html_unescape/html_unescape.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');

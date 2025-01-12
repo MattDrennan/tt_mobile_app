@@ -5,7 +5,7 @@ import 'package:html_unescape/html_unescape.dart';
 class LocationWidget extends StatelessWidget {
   final String? location;
 
-  const LocationWidget({Key? key, required this.location}) : super(key: key);
+  const LocationWidget({super.key, required this.location});
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +34,7 @@ class LocationWidget extends StatelessWidget {
         }
       },
       child: Text(
-        "$locationText",
+        locationText,
         style: const TextStyle(
           color: Colors.blue,
           decoration: TextDecoration.underline,
