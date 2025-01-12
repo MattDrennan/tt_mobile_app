@@ -26,6 +26,12 @@ You are free to download, modify, and use freely for non-commerical purposes.
 	Enable SSL verification (yes)
 	Webhook is active (yes)
 
+## Create icons
+
+```
+dart run flutter_launcher_icons
+```
+
 ## Please contact me with any questions, comments, or concerns
 drennanmattheww@gmail.com
 
