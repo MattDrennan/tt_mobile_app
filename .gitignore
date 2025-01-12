@@ -47,3 +47,5 @@ app.*.map.json
 tt_mobile_app_key/AuthKey_NJXBN3WFLF.p8
 tt_mobile_app_key/KEYS
 /tt_mobile_app_key
+release-key.jks
+Keystore
