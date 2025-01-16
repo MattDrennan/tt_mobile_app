@@ -5,6 +5,7 @@ import 'package:flutter_bbcode/flutter_bbcode.dart' hide ColorTag, UrlTag;
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
 import 'package:intl/intl.dart';
+import 'package:tt_mobile_app/page/SignUpScreen.dart';
 
 import '../custom/InfoRow.dart';
 import '../custom/LocationWidget.dart';
@@ -375,6 +376,23 @@ class _EventPageState extends State<EventPage> {
               )
             else
               Text("No roster data available."),
+            const Divider(),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SignUpScreen(
+                          troopid: widget.troopid,
+                        ),
+                      ));
+                },
+                child: Text('Go To Sign Up'),
+              ),
+            ),
             const Divider(),
             const SizedBox(height: 10),
             SizedBox(

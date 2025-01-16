@@ -698,7 +698,7 @@ class _ChatPageState extends State<ChatPage> {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       setState(() {
-        troops = data['troops'];
+        troops = data['troops'] ?? [];
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

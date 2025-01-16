@@ -29,7 +29,7 @@ class _myTroopsState extends State<myTroops> {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       setState(() {
-        troops = data['troops'];
+        troops = data['troops'] ?? [];
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
