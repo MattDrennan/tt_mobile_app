@@ -9,6 +9,7 @@ You are free to download, modify, and use freely for non-commerical purposes.
 <ol>
 	<li>Upload all the files in "xenforo_api_files/" to the root of your Xenforo directory.</li>
 	<li>All SQL data is included with the install of Troop Tracker.</li>
+	<li>Install this Xenforo add-on: https://github.com/MattDrennan/TroopTrackerViewAttachment</li>
 	<li>Create a .env file in the root directory and put this inside:</li>
 	
 	FORUM_URL=https://www.fl501st.com/boards/
