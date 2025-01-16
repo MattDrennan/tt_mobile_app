@@ -10,6 +10,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
+import 'package:tt_mobile_app/custom/Functions.dart';
 import 'package:tt_mobile_app/page/myTroops.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:html_unescape/html_unescape.dart';
@@ -570,6 +571,7 @@ class _TroopPageState extends State<TroopPage> {
   @override
   void initState() {
     super.initState();
+    fetchSiteStatus(context);
     selectedSquad = 0;
     troops = [];
     fetchTroops(0);
