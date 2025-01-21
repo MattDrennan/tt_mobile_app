@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bbcode/flutter_bbcode.dart' hide ColorTag, UrlTag;
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
 import 'package:intl/intl.dart';
@@ -15,7 +16,7 @@ import '../tags/UrlTag.dart';
 import 'ChatScreen.dart';
 
 class EventPage extends StatefulWidget {
-  final int troopid; // Accept troop ID as a parameter
+  final int troopid;
 
   const EventPage({super.key, required this.troopid});
 
@@ -26,21 +27,20 @@ class EventPage extends StatefulWidget {
 class _EventPageState extends State<EventPage> {
   Map<String, dynamic>? troopData;
   List<dynamic>? rosterData;
+  bool isInRoster = false;
 
-  // Unescape HTML entities
   final unescape = HtmlUnescape();
 
-  // Helper to format date
   String formatDate(String? dateTime) {
     if (dateTime == null || dateTime.isEmpty) {
-      return 'N/A'; // Return 'N/A' for missing or invalid dates
+      return 'N/A';
     }
 
     try {
       DateTime dt = DateFormat("yyyy-MM-dd HH:mm:ss").parse(dateTime);
       return DateFormat('MM/dd/yyyy h:mm a').format(dt);
     } catch (e) {
-      return 'Invalid Date'; // Return a fallback message if parsing fails
+      return 'Invalid Date';
     }
   }
 
@@ -51,7 +51,7 @@ class _EventPageState extends State<EventPage> {
             'https://www.fl501st.com/troop-tracker/mobileapi.php?troopid=$troopid&action=event'),
       );
 
-      if (!mounted) return; // Ensure widget is mounted before proceeding
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -61,12 +61,6 @@ class _EventPageState extends State<EventPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to load troop.')),
-        );
-      }
-    } on TimeoutException catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Request timed out. Please try again.')),
         );
       }
     } catch (e) {
@@ -85,7 +79,7 @@ class _EventPageState extends State<EventPage> {
             'https://www.fl501st.com/troop-tracker/mobileapi.php?troopid=$troopid&action=get_roster_for_event'),
       );
 
-      if (!mounted) return; // Ensure widget is mounted before proceeding
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -97,14 +91,7 @@ class _EventPageState extends State<EventPage> {
           const SnackBar(content: Text('Failed to load roster.')),
         );
       }
-    } on TimeoutException catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Request timed out. Please try again.')),
-        );
-      }
     } catch (e) {
-      print(e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
@@ -113,18 +100,53 @@ class _EventPageState extends State<EventPage> {
     }
   }
 
+  Future<void> checkInRoster() async {
+    final box = Hive.box('TTMobileApp');
+    final rawData = box.get('userData');
+    final userData = json.decode(rawData);
+
+    // Parse user_id as an int
+    final int userId = int.parse(userData['user']['user_id'].toString());
+
+    bool result = await fetchInRoster(userId, widget.troopid);
+
+    if (mounted) {
+      setState(() {
+        isInRoster = result;
+      });
+    }
+  }
+
+  Future<bool> fetchInRoster(int trooperid, int troopid) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=$trooperid&troopid=$troopid&action=trooper_in_event'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['inEvent'] == true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     fetchEvent(widget.troopid);
     fetchRoster(widget.troopid);
+    checkInRoster();
   }
 
-  // BBCode default stlye sheet
   final customStylesheet = defaultBBStylesheet(
     textStyle: const TextStyle(
-      fontSize: 14, // Set the font size you want
-      color: Colors.white, // Retain your desired text color
+      fontSize: 14,
+      color: Colors.white,
     ),
   ).addTag(SizeTag()).replaceTag(ColorTag()).replaceTag(UrlTag());
 
@@ -378,23 +400,42 @@ class _EventPageState extends State<EventPage> {
               Text("No roster data available."),
             const Divider(),
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SignUpScreen(
-                          troopid: widget.troopid,
-                          limitedEvent: troopData?['limitedEvent'] ?? 0,
-                          allowTentative: troopData?['allowTentative'] ?? 0,
-                        ),
-                      ));
-                },
-                child: Text('Go To Sign Up'),
-              ),
-            ),
+            !isInRoster
+                ? SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SignUpScreen(
+                              troopid: widget.troopid,
+                              limitedEvent: troopData?['limitedEvent'] ?? 0,
+                              allowTentative: troopData?['allowTentative'] ?? 0,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text('Go To Sign Up'),
+                    ),
+                  )
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            Colors.red, // Set button color to red for "Cancel"
+                      ),
+                      onPressed: () {
+                        // Implement the cancel action here, e.g., showing a confirmation dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('You have canceled the signup.')),
+                        );
+                      },
+                      child: Text('Cancel Signup'),
+                    ),
+                  ),
             const Divider(),
             const SizedBox(height: 10),
             SizedBox(
