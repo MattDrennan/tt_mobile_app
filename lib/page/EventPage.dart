@@ -84,6 +84,7 @@ class _EventPageState extends State<EventPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
+          fetchRoster(widget.troopid);
           rosterData = data;
         });
       } else {
@@ -127,6 +128,36 @@ class _EventPageState extends State<EventPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['inEvent'] == true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> cancelTroop(int troopid) async {
+    final box = Hive.box('TTMobileApp');
+    final rawData = box.get('userData');
+    final userData = json.decode(rawData);
+
+    // Parse user_id as an int
+    final int userId = int.parse(userData['user']['user_id'].toString());
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=$userId&troopid=$troopid&action=cancel_troop'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          // Update the state variable to refresh the widget
+          isInRoster =
+              false; // Reflect that the user is no longer in the roster
+        });
+        return data['success'] == true;
       } else {
         return false;
       }
@@ -426,12 +457,18 @@ class _EventPageState extends State<EventPage> {
                         backgroundColor:
                             Colors.red, // Set button color to red for "Cancel"
                       ),
-                      onPressed: () {
-                        // Implement the cancel action here, e.g., showing a confirmation dialog
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('You have canceled the signup.')),
-                        );
+                      onPressed: () async {
+                        if (await cancelTroop(widget.troopid)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('You have canceled the signup.')),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Something went wrong.')),
+                          );
+                        }
                       },
                       child: Text('Cancel Signup'),
                     ),

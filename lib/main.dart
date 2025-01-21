@@ -270,10 +270,8 @@ class _LoginPageState extends State<LoginPage> {
     final response = await http.post(
       Uri.parse('${dotenv.env['FORUM_URL'].toString()}api/auth'),
       headers: {
-        'XF-Api-Key':
-            dotenv.env['API_KEY'].toString(), // Replace with your API key
-        'XF-Api-User':
-            dotenv.env['API_USER'].toString(), // Replace with your API user ID
+        'XF-Api-Key': dotenv.env['API_KEY'].toString(),
+        'XF-Api-User': dotenv.env['API_USER'].toString(),
       },
       body: {
         'login': _usernameController.text,

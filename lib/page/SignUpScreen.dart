@@ -4,6 +4,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:tt_mobile_app/models/Costume.dart';
+import 'package:tt_mobile_app/page/EventPage.dart';
 
 class SignUpScreen extends StatefulWidget {
   final int troopid;
@@ -148,8 +149,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     );
                   } else {
-                    print(
-                        'https://www.fl501st.com/troop-tracker/mobileapi.php?action=sign_up&trooperid=${userData['user']['user_id']}&addedby=0&troopid=${widget.troopid}&status=${selectedOption}&costume=${selectedCostume?.id ?? 0}&backupcostume=${backupCostume?.id ?? 0}');
                     final response = await http.get(
                       Uri.parse(
                           'https://www.fl501st.com/troop-tracker/mobileapi.php?action=sign_up&trooperid=${userData['user']['user_id']}&addedby=0&troopid=${widget.troopid}&status=${selectedOption}&costume=${selectedCostume?.id ?? 0}&backupcostume=${backupCostume?.id ?? 0}'),
@@ -159,9 +158,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       final Map<String, dynamic> data =
                           json.decode(response.body);
 
+                      // Show message
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(data['success_message'] ?? 'Unknown'),
+                        ),
+                      );
+
+                      // Navigate back to event
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EventPage(
+                            troopid: widget.troopid,
+                          ),
                         ),
                       );
                     } else {
