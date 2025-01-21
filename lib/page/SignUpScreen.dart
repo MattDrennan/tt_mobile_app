@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:tt_mobile_app/models/Costume.dart';
 
 class SignUpScreen extends StatefulWidget {
   final int troopid;
@@ -21,32 +22,27 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   int? selectedOption = 0;
-  String? selectedCostume;
-  String? backupCostume;
+  Costume? selectedCostume;
+  Costume? backupCostume;
 
   /// Fetch costumes dynamically for the dropdown
-  Future<List<String>> fetchCostumes(String? filter) async {
-    // Open the Hive box
+  Future<List<Costume>> fetchCostumes(String? filter) async {
     final box = Hive.box('TTMobileApp');
-
-    // Retrieve and decode user data
     final rawData = box.get('userData');
     final userData = json.decode(rawData);
-
-    print(userData['user']['user_id'].toString());
 
     final response = await http.get(
       Uri.parse(
           'https://www.fl501st.com/troop-tracker/mobileapi.php?action=get_costumes_for_trooper&trooperid=${userData['user']['user_id'].toString()}&friendid=0'),
     );
 
-    print(response.body);
-
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data
-          .map<String>(
-              (costume) => '${costume['abbreviation']}${costume['name']}')
+          .map<Costume>((costume) => Costume(
+                id: costume['id'],
+                name: '${costume['abbreviation']}${costume['name']}',
+              ))
           .toList();
     } else {
       throw Exception('Failed to load costumes');
@@ -94,13 +90,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             const SizedBox(height: 16),
             const Text('Costume:', style: TextStyle(fontSize: 16)),
-            DropdownSearch<String>(
-              items: (String? filter, _) => fetchCostumes(filter),
-              itemAsString: (item) => item,
+            DropdownSearch<Costume>(
+              items: (String? filter, dynamic infiniteScrollProps) =>
+                  fetchCostumes(filter),
+              itemAsString: (Costume? costume) =>
+                  costume?.name ?? '', // Display the name of the costume
               selectedItem: selectedCostume,
-              onChanged: (value) {
+              compareFn: (Costume? item, Costume? selectedItem) =>
+                  item?.id == selectedItem?.id,
+              onChanged: (Costume? value) {
                 setState(() {
-                  selectedCostume = value;
+                  selectedCostume = value; // Store the selected costume object
                 });
               },
               popupProps: PopupProps.menu(
@@ -111,14 +111,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             const SizedBox(height: 16),
             const Text('Backup Costume:', style: TextStyle(fontSize: 16)),
-            DropdownSearch<String>(
-              items: (String? filter, _) => fetchCostumes(filter),
-              itemAsString: (item) => item,
+            DropdownSearch<Costume>(
+              items: (String? filter, dynamic infiniteScrollProps) =>
+                  fetchCostumes(filter),
+              itemAsString: (Costume? costume) =>
+                  costume?.name ?? '', // Display the name of the costume
               selectedItem: backupCostume,
-              onChanged: (value) {
-                print(value);
+              compareFn: (Costume? item, Costume? selectedItem) =>
+                  item?.id == selectedItem?.id,
+              onChanged: (Costume? value) {
                 setState(() {
-                  backupCostume = value;
+                  backupCostume =
+                      value; // Store the selected back up costume object
                 });
               },
               popupProps: PopupProps.menu(
