@@ -387,6 +387,8 @@ class _EventPageState extends State<EventPage> {
                       MaterialPageRoute(
                         builder: (context) => SignUpScreen(
                           troopid: widget.troopid,
+                          limitedEvent: troopData?['limitedEvent'] ?? 0,
+                          allowTentative: troopData?['allowTentative'] ?? 0,
                         ),
                       ));
                 },

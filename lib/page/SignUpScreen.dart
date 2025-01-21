@@ -1,31 +1,57 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:hive/hive.dart';
+import 'package:http/http.dart' as http;
 
 class SignUpScreen extends StatefulWidget {
-  final int troopid; // Accept troop ID as a parameter
+  final int troopid;
+  final int limitedEvent;
+  final int allowTentative;
 
-  const SignUpScreen({super.key, required this.troopid});
+  const SignUpScreen(
+      {super.key,
+      required this.troopid,
+      required this.limitedEvent,
+      required this.allowTentative});
 
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  bool showSignUpForm = false; // Controls the visibility of the form
-  String? selectedOption =
-      'I\'ll be there!'; // Stores the selected option from the dropdown
-  String?
-      selectedSearchableOption; // Stores the selected value from the searchable dropdown
+  int? selectedOption = 0;
+  String? selectedCostume;
+  String? backupCostume;
 
-  final List<String> customOptions = [
-    'Option 1',
-    'Option 2',
-    'Option 3',
-    'Option 4',
-  ];
+  /// Fetch costumes dynamically for the dropdown
+  Future<List<String>> fetchCostumes(String? filter) async {
+    // Open the Hive box
+    final box = Hive.box('TTMobileApp');
 
-  // Define the list of options
-  final List<String> options = ['I\'ll be there!', 'Tentative'];
+    // Retrieve and decode user data
+    final rawData = box.get('userData');
+    final userData = json.decode(rawData);
+
+    print(userData['user']['user_id'].toString());
+
+    final response = await http.get(
+      Uri.parse(
+          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=get_costumes_for_trooper&trooperid=${userData['user']['user_id'].toString()}&friendid=0'),
+    );
+
+    print(response.body);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data
+          .map<String>(
+              (costume) => '${costume['abbreviation']}${costume['name']}')
+          .toList();
+    } else {
+      throw Exception('Failed to load costumes');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,75 +62,87 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DropdownButton<String>(
-              value: selectedOption, // The currently selected value
-              items: options.map((String option) {
-                return DropdownMenuItem<String>(
-                  value: option,
-                  child: Text(option),
-                );
-              }).toList(), // Map options to DropdownMenuItem widgets
-              hint: const Text('Choose an option'), // Placeholder text
-              onChanged: (String? newValue) {
+            DropdownButton<int>(
+              value: selectedOption,
+              items: [
+                if (widget.limitedEvent != 1) ...[
+                  DropdownMenuItem<int>(
+                    value: 0,
+                    child: Text("I'll be there!"),
+                  ),
+                  if (widget.allowTentative == 1)
+                    DropdownMenuItem<int>(
+                      value: 2,
+                      child: Text("Tentative"),
+                    ),
+                ] else
+                  DropdownMenuItem<int>(
+                    value: 5,
+                    child: Text("Request to attend (Pending)"),
+                  ),
+              ],
+              onChanged: (int? newValue) {
                 setState(() {
-                  selectedOption = newValue; // Update the selected option
+                  selectedOption = newValue;
                 });
               },
-              isExpanded: true, // Make dropdown take up full width
+              isExpanded: true,
               underline: Container(
                 height: 2,
-                color: Colors.blue, // Custom underline color
+                color: Colors.blue,
               ),
             ),
             const SizedBox(height: 16),
             const Text('Costume:', style: TextStyle(fontSize: 16)),
             DropdownSearch<String>(
-              selectedItem: "Menu",
-              items: (filter, infiniteScrollProps) =>
-                  ["Menu", "Dialog", "Modal", "BottomSheet"],
-              decoratorProps: DropDownDecoratorProps(
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                ),
-              ),
+              items: (String? filter, _) => fetchCostumes(filter),
+              itemAsString: (item) => item,
+              selectedItem: selectedCostume,
+              onChanged: (value) {
+                setState(() {
+                  selectedCostume = value;
+                });
+              },
               popupProps: PopupProps.menu(
-                  showSearchBox: true, // Enable the search box
-                  fit: FlexFit.loose,
-                  constraints: BoxConstraints()),
+                showSearchBox: true,
+                fit: FlexFit.loose,
+                constraints: const BoxConstraints(),
+              ),
             ),
             const SizedBox(height: 16),
             const Text('Backup Costume:', style: TextStyle(fontSize: 16)),
             DropdownSearch<String>(
-              selectedItem: "Menu",
-              items: (filter, infiniteScrollProps) =>
-                  ["Menu", "Dialog", "Modal", "BottomSheet"],
-              decoratorProps: DropDownDecoratorProps(
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                ),
-              ),
+              items: (String? filter, _) => fetchCostumes(filter),
+              itemAsString: (item) => item,
+              selectedItem: backupCostume,
+              onChanged: (value) {
+                setState(() {
+                  backupCostume = value;
+                });
+              },
               popupProps: PopupProps.menu(
-                  showSearchBox: true, // Enable the search box
-                  fit: FlexFit.loose,
-                  constraints: BoxConstraints()),
+                showSearchBox: true,
+                fit: FlexFit.loose,
+                constraints: const BoxConstraints(),
+              ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
                 if (selectedOption == null ||
-                    selectedSearchableOption == null) {
+                    selectedCostume == null ||
+                    backupCostume == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content:
-                          Text('Please select both options before signing up!'),
+                          Text('Please select all options before signing up!'),
                     ),
                   );
                 } else {
-                  // Handle sign-up logic
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          'Signed up for $selectedOption - $selectedSearchableOption!'),
+                          'Signed up: $selectedOption - $selectedCostume (Backup: $backupCostume)'),
                     ),
                   );
                 }
