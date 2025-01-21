@@ -116,6 +116,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               itemAsString: (item) => item,
               selectedItem: backupCostume,
               onChanged: (value) {
+                print(value);
                 setState(() {
                   backupCostume = value;
                 });
@@ -127,27 +128,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                if (selectedOption == null ||
-                    selectedCostume == null ||
-                    backupCostume == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content:
-                          Text('Please select all options before signing up!'),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          'Signed up: $selectedOption - $selectedCostume (Backup: $backupCostume)'),
-                    ),
-                  );
-                }
-              },
-              child: const Text('Sign Up'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (selectedOption == null ||
+                      selectedCostume == null ||
+                      backupCostume == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Please select all options before signing up!'),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Signed up: $selectedOption - $selectedCostume (Backup: $backupCostume)'),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Sign Up'),
+              ),
             ),
           ],
         ),
