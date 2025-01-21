@@ -11,6 +11,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
 import 'package:tt_mobile_app/custom/Functions.dart';
+import 'package:tt_mobile_app/page/ConfirmPage.dart';
 import 'package:tt_mobile_app/page/myTroops.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:html_unescape/html_unescape.dart';
@@ -102,6 +103,30 @@ Future<bool> getToken(String userId) async {
       print('Failed to retrieve FCM token.');
       return false;
     }
+  }
+}
+
+Future<bool> fetchConfirmTroops(int trooperid) async {
+  try {
+    final response = await http.get(
+      Uri.parse(
+          'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=$trooperid&action=get_confirm_events_trooper'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      // Check if 'troops' exists and is not empty
+      if (data['troops'] != null && (data['troops'] as List).isNotEmpty) {
+        return true; // Troops are present
+      } else {
+        return false; // No troops available
+      }
+    } else {
+      return false; // HTTP error
+    }
+  } catch (e) {
+    return false; // Exception occurred
   }
 }
 
@@ -472,6 +497,36 @@ class MyHomePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
+            // Confirm Troops Button (conditionally displayed)
+            FutureBuilder<bool>(
+              future: fetchConfirmTroops(int.parse(_user.id)),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data == true) {
+                  return Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ConfirmPage(
+                                    trooperId: int.parse(_user.id),
+                                  ),
+                                ));
+                          },
+                          child: const Text('Confirm Troops'),
+                        ),
+                      ),
+                      const SizedBox(height: 20), // Add some spacing
+                    ],
+                  );
+                } else {
+                  return const SizedBox.shrink(); // Don't render anything
+                }
+              },
+            ),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
