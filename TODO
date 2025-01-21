@@ -1,6 +1,11 @@
 # TODO
 -Upload photos in troop
 -Troop Sign Up
+    -Cancel sign up
+    -When sign up, refresh roster on previous page, redirect there
+    -Show cancel button where sign up was
+-Add a friend sign up
+-Confirm troops
 -Push notifications
 -Add to calendar
 -Search
