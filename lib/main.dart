@@ -404,10 +404,29 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-class MyHomePage extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
   final String title;
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  late Future<bool> confirmTroopsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    confirmTroopsFuture = fetchConfirmTroops(int.parse(_user.id));
+  }
+
+  void refreshConfirmTroops() {
+    setState(() {
+      confirmTroopsFuture = fetchConfirmTroops(int.parse(_user.id));
+    });
+  }
 
   Future<void> _logout(BuildContext context) async {
     final box = Hive.box('TTMobileApp');
@@ -430,7 +449,7 @@ class MyHomePage extends StatelessWidget {
     } else {
       print('Fail');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occured while logging out!')),
+        const SnackBar(content: Text('An error occurred while logging out!')),
       );
     }
 
@@ -446,7 +465,7 @@ class MyHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Text(widget.title),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -478,7 +497,7 @@ class MyHomePage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const myTroops()),
-                  );
+                  ).then((_) => refreshConfirmTroops()); // Refresh on return
                 },
                 child: const Text('My Troops'),
               ),
@@ -491,7 +510,7 @@ class MyHomePage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const ChatPage()),
-                  );
+                  ).then((_) => refreshConfirmTroops()); // Refresh on return
                 },
                 child: const Text('Chat'),
               ),
@@ -499,7 +518,7 @@ class MyHomePage extends StatelessWidget {
             const SizedBox(height: 20),
             // Confirm Troops Button (conditionally displayed)
             FutureBuilder<bool>(
-              future: fetchConfirmTroops(int.parse(_user.id)),
+              future: confirmTroopsFuture,
               builder: (context, snapshot) {
                 if (snapshot.hasData && snapshot.data == true) {
                   return Column(
@@ -509,12 +528,14 @@ class MyHomePage extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ConfirmPage(
-                                    trooperId: int.parse(_user.id),
-                                  ),
-                                ));
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ConfirmPage(
+                                  trooperId: int.parse(_user.id),
+                                ),
+                              ),
+                            ).then((_) =>
+                                refreshConfirmTroops()); // Refresh on return
                           },
                           child: const Text('Confirm Troops'),
                         ),

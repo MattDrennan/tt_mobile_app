@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:tt_mobile_app/models/Costume.dart';
 
@@ -111,12 +110,16 @@ class _ConfirmPageState extends State<ConfirmPage> {
       return;
     }
 
+    // Keep track of successful updates
+    List<int> updatedTroops = [];
+
     for (int troopId in selectedTroops) {
       await updateStatusAndCostume(
         troopId: troopId,
         status: 3,
         costumeId: selectedCostume?.id,
       );
+      updatedTroops.add(troopId); // Mark as updated
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -124,7 +127,9 @@ class _ConfirmPageState extends State<ConfirmPage> {
           content: Text('Attendance confirmed for selected troops.')),
     );
 
+    // Remove updated troops from the list
     setState(() {
+      troops.removeWhere((troop) => updatedTroops.contains(troop['troopid']));
       selectedTroops.clear(); // Clear selections after updating
     });
   }
@@ -137,11 +142,15 @@ class _ConfirmPageState extends State<ConfirmPage> {
       return;
     }
 
+    // Keep track of successful updates
+    List<int> updatedTroops = [];
+
     for (int troopId in selectedTroops) {
       await updateStatusAndCostume(
         troopId: troopId,
         status: 4,
       );
+      updatedTroops.add(troopId); // Mark as updated
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -149,7 +158,9 @@ class _ConfirmPageState extends State<ConfirmPage> {
           content: Text('Marked as not attended for selected troops.')),
     );
 
+    // Remove updated troops from the list
     setState(() {
+      troops.removeWhere((troop) => updatedTroops.contains(troop['troopid']));
       selectedTroops.clear(); // Clear selections after updating
     });
   }
