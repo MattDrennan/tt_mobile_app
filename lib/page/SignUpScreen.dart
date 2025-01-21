@@ -51,6 +51,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final box = Hive.box('TTMobileApp');
+    final rawData = box.get('userData');
+    final userData = json.decode(rawData);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Sign Up')),
       body: Padding(
@@ -135,23 +139,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  if (selectedOption == null ||
-                      selectedCostume == null ||
-                      backupCostume == null) {
+                onPressed: () async {
+                  if (selectedOption == null || selectedCostume == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text(
-                            'Please select all options before signing up!'),
+                        content:
+                            Text('Please select a costume before signing up!'),
                       ),
                     );
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Signed up: $selectedOption - $selectedCostume (Backup: $backupCostume)'),
-                      ),
+                    print(
+                        'https://www.fl501st.com/troop-tracker/mobileapi.php?action=sign_up&trooperid=${userData['user']['user_id']}&addedby=0&troopid=${widget.troopid}&status=${selectedOption}&costume=${selectedCostume?.id ?? 0}&backupcostume=${backupCostume?.id ?? 0}');
+                    final response = await http.get(
+                      Uri.parse(
+                          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=sign_up&trooperid=${userData['user']['user_id']}&addedby=0&troopid=${widget.troopid}&status=${selectedOption}&costume=${selectedCostume?.id ?? 0}&backupcostume=${backupCostume?.id ?? 0}'),
                     );
+
+                    if (response.statusCode == 200) {
+                      final Map<String, dynamic> data =
+                          json.decode(response.body);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(data['success_message'] ?? 'Unknown'),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to sign up!'),
+                        ),
+                      );
+                    }
                   }
                 },
                 child: const Text('Sign Up'),
