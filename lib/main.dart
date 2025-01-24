@@ -324,7 +324,7 @@ class _LoginPageState extends State<LoginPage> {
 
     final userData = json.decode(response.body);
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 && userData?['success'] == true) {
       final box = Hive.box('TTMobileApp');
       box.put('userData', json.encode(userData));
 
