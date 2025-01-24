@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/models/Costume.dart';
 
 class ConfirmPage extends StatefulWidget {
@@ -27,9 +29,15 @@ class _ConfirmPageState extends State<ConfirmPage> {
 
   /// Fetch costumes dynamically for the dropdown
   Future<List<Costume>> fetchCostumes(String? filter) async {
+    // Open the Hive box
+    final box = Hive.box('TTMobileApp');
+
     final response = await http.get(
       Uri.parse(
           'https://www.fl501st.com/troop-tracker/mobileapi.php?action=get_costumes_for_trooper&trooperid=${widget.trooperId}&friendid=0&allowDualCostume=true'),
+      headers: {
+        'API-Key': box.get('apiKey') ?? '',
+      },
     );
 
     if (response.statusCode == 200) {
@@ -47,9 +55,15 @@ class _ConfirmPageState extends State<ConfirmPage> {
 
   Future<void> fetchTroops() async {
     try {
+      // Open the Hive box
+      final box = Hive.box('TTMobileApp');
+
       final response = await http.get(
         Uri.parse(
             'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=${widget.trooperId}&action=get_confirm_events_trooper'),
+        headers: {
+          'API-Key': box.get('apiKey') ?? '',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -79,11 +93,17 @@ class _ConfirmPageState extends State<ConfirmPage> {
   Future<void> updateStatusAndCostume(
       {required int troopId, required int status, int? costumeId}) async {
     try {
+      // Open the Hive box
+      final box = Hive.box('TTMobileApp');
+
       final trooperId = widget.trooperId;
 
       final response = await http.get(
         Uri.parse(
             'https://www.fl501st.com/troop-tracker/mobileapi.php?action=set_status_costume&trooperid=$trooperId&troopid=$troopId&status=$status&costume=${costumeId ?? 0}'),
+        headers: {
+          'API-Key': box.get('apiKey') ?? '',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -168,9 +188,7 @@ class _ConfirmPageState extends State<ConfirmPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Confirm Troops'),
-      ),
+      appBar: buildAppBar(context, 'Confirm Troops'),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : troops.isEmpty

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
+import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/page/EventPage.dart';
 
 class myTroops extends StatefulWidget {
@@ -24,6 +25,9 @@ class _myTroopsState extends State<myTroops> {
     final response = await http.get(
       Uri.parse(
           'https://www.fl501st.com/troop-tracker/mobileapi.php?user_id=${userData!['user']['user_id'].toString()}&action=troops'),
+      headers: {
+        'API-Key': box.get('apiKey') ?? '',
+      },
     );
 
     if (response.statusCode == 200) {
@@ -47,9 +51,7 @@ class _myTroopsState extends State<myTroops> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Troops'),
-      ),
+      appBar: buildAppBar(context, 'My Troops'),
       body: SingleChildScrollView(
         child: Column(
           children: List.generate(

@@ -10,6 +10,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
+import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/custom/Functions.dart';
 import 'package:tt_mobile_app/page/ConfirmPage.dart';
 import 'package:tt_mobile_app/page/myTroops.dart';
@@ -75,6 +76,9 @@ Future<bool> getToken(String userId) async {
     // APNS Token
     print('APNS token: $apnsToken');
 
+    // Open the Hive box
+    final box = Hive.box('TTMobileApp');
+
     // Retrieve FCM token
     String? fcmToken = await FirebaseMessaging.instance.getToken();
     if (fcmToken != null) {
@@ -86,6 +90,9 @@ Future<bool> getToken(String userId) async {
           'action': 'saveFCM',
           'userid': userId,
           'fcm': fcmToken,
+        },
+        headers: {
+          'API-Key': box.get('apiKey') ?? '',
         },
       );
 
@@ -108,9 +115,15 @@ Future<bool> getToken(String userId) async {
 
 Future<bool> fetchConfirmTroops(int trooperid) async {
   try {
+    // Open the Hive box
+    final box = Hive.box('TTMobileApp');
+
     final response = await http.get(
       Uri.parse(
           'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=$trooperid&action=get_confirm_events_trooper'),
+      headers: {
+        'API-Key': box.get('apiKey') ?? '',
+      },
     );
 
     if (response.statusCode == 200) {
@@ -244,6 +257,14 @@ class AuthCheck extends StatelessWidget {
         return false; // Invalid data, treat as not logged in
       }
 
+      // Store the apiKey in the Hive box if it exists
+      final apiKey = userData?['apiKey'];
+      if (apiKey != null) {
+        box.put('apiKey', apiKey); // Save the apiKey
+      } else {
+        print('apiKey not found in userData');
+      }
+
       // Set user object (assuming _user is a global or class variable)
       _user = types.User(
         id: userData['user']['user_id'].toString(),
@@ -293,11 +314,8 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     final response = await http.post(
-      Uri.parse('${dotenv.env['FORUM_URL'].toString()}api/auth'),
-      headers: {
-        'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-        'XF-Api-User': dotenv.env['API_USER'].toString(),
-      },
+      Uri.parse(
+          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=login_with_forum'),
       body: {
         'login': _usernameController.text,
         'password': _passwordController.text,
@@ -317,6 +335,8 @@ class _LoginPageState extends State<LoginPage> {
             ?['s'], // Replace with actual avatar URL or leave null
       );
 
+      box.put('apiKey', userData?['apiKey']);
+
       getToken(userData!['user']['user_id'].toString());
 
       Navigator.pushReplacement(
@@ -334,9 +354,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
+      appBar: buildAppBar(context, 'Troop Tracker'),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -439,7 +457,11 @@ class _MyHomePageState extends State<MyHomePage> {
       Uri.parse('https://www.fl501st.com/troop-tracker/mobileapi.php'),
       body: {
         'action': 'logoutFCM',
-        'fcm': box.get('fcm'),
+        'apiKey': box.get('apiKey') ?? '',
+        'fcm': box.get('fcm') ?? '',
+      },
+      headers: {
+        'API-Key': box.get('apiKey') ?? '',
       },
     );
 
@@ -464,9 +486,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
+      appBar: buildAppBar(context, widget.title),
       body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -608,9 +628,15 @@ class _TroopPageState extends State<TroopPage> {
 
   Future<void> fetchTroops(int squad) async {
     try {
+      // Open the Hive box
+      final box = Hive.box('TTMobileApp');
+
       final response = await http.get(
         Uri.parse(
             'https://www.fl501st.com/troop-tracker/mobileapi.php?squad=$squad&action=get_troops_by_squad'),
+        headers: {
+          'API-Key': box.get('apiKey') ?? '',
+        },
       );
 
       selectedSquad = squad;
@@ -654,9 +680,7 @@ class _TroopPageState extends State<TroopPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Troops'),
-        ),
+        appBar: buildAppBar(context, 'Troops'),
         body: Column(
           children: [
             SingleChildScrollView(
@@ -725,8 +749,7 @@ class _TroopPageState extends State<TroopPage> {
                                   .convert(troops[index]['name'] ?? '')),
                               SizedBox(height: 5),
                               Text(
-                                (troops[index]['trooper_count'] ?? 0) ==
-                                        0 // Explicit comparison to 0
+                                (troops[index]['trooper_count'] ?? 0) < 2
                                     ? 'NOT ENOUGH TROOPERS FOR THIS EVENT!'
                                     : '${troops[index]['trooper_count']?.toString() ?? '0'} Troopers Attending',
                                 style: TextStyle(
@@ -767,6 +790,9 @@ class _ChatPageState extends State<ChatPage> {
     final response = await http.get(
       Uri.parse(
           'https://www.fl501st.com/troop-tracker/mobileapi.php?user_id=${userData!['user']['user_id'].toString()}&action=troops'),
+      headers: {
+        'API-Key': box.get('apiKey') ?? '',
+      },
     );
 
     if (response.statusCode == 200) {
@@ -790,9 +816,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Troops'),
-      ),
+      appBar: buildAppBar(context, 'My Troops'),
       body: SingleChildScrollView(
         child: Column(
           children: List.generate(

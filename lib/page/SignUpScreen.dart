@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/models/Costume.dart';
 import 'package:tt_mobile_app/page/EventPage.dart';
 
@@ -35,6 +36,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final response = await http.get(
       Uri.parse(
           'https://www.fl501st.com/troop-tracker/mobileapi.php?action=get_costumes_for_trooper&trooperid=${userData['user']['user_id'].toString()}&friendid=0'),
+      headers: {
+        'API-Key': box.get('apiKey') ?? '',
+      },
     );
 
     if (response.statusCode == 200) {
@@ -57,7 +61,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final userData = json.decode(rawData);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign Up')),
+      appBar: buildAppBar(context, 'Sign Up'),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -152,6 +156,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     final response = await http.get(
                       Uri.parse(
                           'https://www.fl501st.com/troop-tracker/mobileapi.php?action=sign_up&trooperid=${userData['user']['user_id']}&addedby=0&troopid=${widget.troopid}&status=${selectedOption}&costume=${selectedCostume?.id ?? 0}&backupcostume=${backupCostume?.id ?? 0}'),
+                      headers: {
+                        'API-Key': box.get('apiKey') ?? '',
+                      },
                     );
 
                     if (response.statusCode == 200) {
@@ -166,13 +173,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       );
 
                       // Navigate back to event
-                      Navigator.push(
+                      Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
                           builder: (context) => EventPage(
                             troopid: widget.troopid,
                           ),
                         ),
+                        (route) => false, // Remove all previous routes
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(

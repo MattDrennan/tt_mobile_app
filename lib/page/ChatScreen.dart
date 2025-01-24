@@ -14,6 +14,7 @@ import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:hive/hive.dart';
+import 'package:tt_mobile_app/custom/AppBar.dart';
 
 // Global
 types.User _user = const types.User(id: 'user');
@@ -171,6 +172,9 @@ class _ChatScreenState extends State<ChatScreen> {
           '?action=block_user'
           '&blocker_id=${userData['user']['user_id']}'
           '&blocked_id=$userId'),
+      headers: {
+        'API-Key': box.get('apiKey') ?? '',
+      },
     );
 
     if (response.statusCode == 200) {
@@ -209,6 +213,9 @@ class _ChatScreenState extends State<ChatScreen> {
           '&reporter_id=${userData['user']['user_id']}'
           '&message=$reportReason'
           '&post_id=$messageId'),
+      headers: {
+        'API-Key': box.get('apiKey') ?? '',
+      },
     );
 
     if (response.statusCode == 200) {
@@ -391,7 +398,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Chat with ${widget.troopName}')),
+      appBar: buildAppBar(context, 'Chat with ${widget.troopName}'),
       body: Chat(
         messages: _messages,
         onSendPressed: _addMessage,

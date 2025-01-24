@@ -6,6 +6,7 @@ import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
 import 'package:intl/intl.dart';
+import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/page/SignUpScreen.dart';
 
 import '../custom/InfoRow.dart';
@@ -46,9 +47,15 @@ class _EventPageState extends State<EventPage> {
 
   Future<void> fetchEvent(int troopid) async {
     try {
+      // Open the Hive box
+      final box = Hive.box('TTMobileApp');
+
       final response = await http.get(
         Uri.parse(
             'https://www.fl501st.com/troop-tracker/mobileapi.php?troopid=$troopid&action=event'),
+        headers: {
+          'API-Key': box.get('apiKey') ?? '',
+        },
       );
 
       if (!mounted) return;
@@ -74,9 +81,15 @@ class _EventPageState extends State<EventPage> {
 
   Future<void> fetchRoster(int troopid) async {
     try {
+      // Open the Hive box
+      final box = Hive.box('TTMobileApp');
+
       final response = await http.get(
         Uri.parse(
             'https://www.fl501st.com/troop-tracker/mobileapi.php?troopid=$troopid&action=get_roster_for_event'),
+        headers: {
+          'API-Key': box.get('apiKey') ?? '',
+        },
       );
 
       if (!mounted) return;
@@ -120,9 +133,15 @@ class _EventPageState extends State<EventPage> {
 
   Future<bool> fetchInRoster(int trooperid, int troopid) async {
     try {
+      // Open the Hive box
+      final box = Hive.box('TTMobileApp');
+
       final response = await http.get(
         Uri.parse(
             'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=$trooperid&troopid=$troopid&action=trooper_in_event'),
+        headers: {
+          'API-Key': box.get('apiKey') ?? '',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -148,6 +167,9 @@ class _EventPageState extends State<EventPage> {
       final response = await http.get(
         Uri.parse(
             'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=$userId&troopid=$troopid&action=cancel_troop'),
+        headers: {
+          'API-Key': box.get('apiKey') ?? '',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -184,11 +206,7 @@ class _EventPageState extends State<EventPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          unescape.convert(troopData?['name'] ?? ''),
-        ),
-      ),
+      appBar: buildAppBar(context, unescape.convert(troopData?['name'] ?? '')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
