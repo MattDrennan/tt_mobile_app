@@ -24,10 +24,51 @@ $db = \XF::db();
 // Get action parameter
 $action = $_GET['action'] ?? null;
 
+// Validate API Key (Added API logic at the top)
+function validateApiKey($headers)
+{
+    global $db;
+
+    // Check if the API key is present
+    if (!isset($headers['API-Key']) || empty($headers['API-Key'])) {
+        http_response_code(401);
+        echo json_encode(['error' => 'API key is required.']);
+        exit();
+    }
+
+    $apiKey = $headers['API-Key'];
+
+    // Validate API key in the database
+    $trooperId = $db->fetchOne("
+        SELECT trooperid 
+        FROM trooper_api_codes 
+        WHERE api_code = ?
+    ", [$apiKey]);
+
+    if (!$trooperId) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Invalid API key.']);
+        exit();
+    }
+
+    return (int)$trooperId;
+}
+
+// Get headers
+$headers = getallheaders();
+$validatedTrooperId = validateApiKey($headers); // Trooper ID from API key validation
+
 // Block User API
 if ($action === 'block_user') {
     $blockerUserId = (int)($_GET['blocker_id'] ?? 0); // The user doing the blocking
     $blockedUserId = (int)($_GET['blocked_id'] ?? 0); // The user being blocked
+
+    // Ensure blocker_id matches the trooperid from API key validation
+    if ($blockerUserId !== $validatedTrooperId) {
+        http_response_code(403);
+        echo json_encode(['error' => 'You are not authorized to block users.']);
+        exit();
+    }
 
     // Validate inputs
     if (!$blockerUserId || !$blockedUserId) {
@@ -83,6 +124,13 @@ if ($action === 'report_post') {
     $postId = (int)($_GET['post_id'] ?? 0);
     $message = $_GET['message'] ?? 'No reason provided.';
     $reporterUserId = (int)($_GET['reporter_id'] ?? 0); // Custom reporter user ID
+
+    // Ensure reporter_id matches the trooperid from API key validation
+    if ($reporterUserId !== $validatedTrooperId) {
+        http_response_code(403);
+        echo json_encode(['error' => 'You are not authorized to report posts.']);
+        exit();
+    }
 
     if (!$postId) {
         http_response_code(400);
