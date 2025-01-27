@@ -155,7 +155,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   } else {
                     final response = await http.get(
                       Uri.parse(
-                          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=sign_up&trooperid=${userData['user']['user_id']}&addedby=0&troopid=${widget.troopid}&status=${selectedOption}&costume=${selectedCostume?.id ?? 0}&backupcostume=${backupCostume?.id ?? 0}'),
+                          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=sign_up&trooperid=${userData['user']['user_id']}&addedby=0&troopid=${widget.troopid}&status=$selectedOption&costume=${selectedCostume?.id ?? 0}&backupcostume=${backupCostume?.id ?? 0}'),
                       headers: {
                         'API-Key': box.get('apiKey') ?? '',
                       },
