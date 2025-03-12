@@ -55,6 +55,7 @@ dependencies:
   html_unescape: ^2.0.0
   flutter_launcher_icons: ^0.14.2
   dropdown_search: ^6.0.2
+  add_2_calendar: ^3.0.1
 
 dev_dependencies:
   flutter_test:

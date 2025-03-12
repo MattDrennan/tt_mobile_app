@@ -8,6 +8,7 @@ import 'package:html_unescape/html_unescape.dart';
 import 'package:intl/intl.dart';
 import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/page/SignUpScreen.dart';
+import 'package:add_2_calendar/add_2_calendar.dart';
 
 import '../custom/InfoRow.dart';
 import '../custom/LocationWidget.dart';
@@ -31,6 +32,56 @@ class _EventPageState extends State<EventPage> {
   bool isInRoster = false;
 
   final unescape = HtmlUnescape();
+
+  /// **Convert String Date to DateTime for Calendar**
+  DateTime? parseDateTime(String? dateTime) {
+    if (dateTime == null || dateTime.isEmpty) return null;
+
+    try {
+      return DateFormat("yyyy-MM-dd HH:mm:ss").parse(dateTime);
+    } catch (e) {
+      print("Error parsing date: $e");
+      return null;
+    }
+  }
+
+  /// **Function to Add Event to Calendar**
+  void addToCalendar() {
+    if (troopData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Event data is missing.')),
+      );
+      return;
+    }
+
+    DateTime? startDate = parseDateTime(troopData?['dateStart']);
+    DateTime? endDate = parseDateTime(troopData?['dateEnd']);
+
+    if (startDate == null || endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid event date.')),
+      );
+      return;
+    }
+
+    final Event event = Event(
+      title: unescape.convert(troopData?['name'] ?? 'Troop Event'),
+      description: unescape
+          .convert(troopData?['comments'] ?? 'No additional information.'),
+      location: troopData?['location'] ?? 'Location not specified',
+      startDate: startDate,
+      endDate: endDate,
+      allDay: false,
+    );
+
+    Add2Calendar.addEvent2Cal(event).then((success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text(success ? 'Loading calendar...' : 'Failed to add event.')),
+      );
+    });
+  }
 
   String formatDate(String? dateTime) {
     if (dateTime == null || dateTime.isEmpty) {
@@ -493,21 +544,33 @@ class _EventPageState extends State<EventPage> {
                   ),
             const Divider(),
             const SizedBox(height: 10),
+            // **"Add to Calendar" Button**
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
+                icon: Icon(Icons.calendar_today),
+                label: Text("Add to Calendar"),
+                onPressed: addToCalendar,
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => ChatScreen(
-                          troopName: unescape.convert(troopData?['name'] ?? ''),
-                          threadId: troopData?['thread_id'] ?? '',
-                          postId: troopData?['post_id'] ?? ''),
+                        troopName: unescape.convert(troopData?['name'] ?? ''),
+                        threadId: troopData?['thread_id'] ?? '',
+                        postId: troopData?['post_id'] ?? '',
+                      ),
                     ),
                   );
                 },
-                child: Text('Go To Discussion'),
+                icon: Icon(Icons.chat_bubble, size: 20), // Chat bubble icon
+                label: Text('Go To Discussion'),
               ),
             ),
           ],
