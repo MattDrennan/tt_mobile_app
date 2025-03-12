@@ -177,16 +177,22 @@ void handleMessageOpenedApp(RemoteMessage message) {
   final troopName = message.data['troopName'] ?? 'Unknown'; // Get troop name
 
   // Navigate to the ChatScreen
-  Navigator.push(
-    navigatorKey.currentContext!, // Use a global navigator key
-    MaterialPageRoute(
-      builder: (context) => ChatScreen(
-        troopName: troopName,
-        threadId: threadId,
-        postId: postId,
-      ),
-    ),
-  );
+  Future.delayed(const Duration(milliseconds: 500), () {
+    if (navigatorKey.currentContext != null) {
+      Navigator.push(
+        navigatorKey.currentContext!,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(
+            troopName: troopName,
+            threadId: threadId,
+            postId: postId,
+          ),
+        ),
+      );
+    } else {
+      print('Navigator context is null');
+    }
+  });
 }
 
 void setupFirebaseListeners() {
