@@ -11,6 +11,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
 import 'package:tt_mobile_app/custom/AppBar.dart';
+import 'package:tt_mobile_app/page/ChatPage.dart';
 import 'package:tt_mobile_app/page/ConfirmPage.dart';
 import 'package:tt_mobile_app/page/TroopPage.dart';
 import 'package:tt_mobile_app/page/myTroops.dart';
@@ -613,78 +614,6 @@ class _MyHomePageState extends State<MyHomePage> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
-
-  @override
-  State<ChatPage> createState() => _ChatPageState();
-}
-
-class _ChatPageState extends State<ChatPage> {
-  List<dynamic> troops = [];
-
-  Future<void> fetchTroops() async {
-    final box = Hive.box('TTMobileApp');
-    final userData = await json.decode(box.get('userData'));
-    final response = await http.get(
-      Uri.parse(
-          'https://www.fl501st.com/troop-tracker/mobileapi.php?user_id=${userData!['user']['user_id'].toString()}&action=troops'),
-      headers: {
-        'API-Key': box.get('apiKey') ?? '',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      setState(() {
-        troops = data['troops'] ?? [];
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load troops.')),
-      );
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    fetchTroops();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildAppBar(context, 'My Troops'),
-      body: SingleChildScrollView(
-        child: Column(
-          children: List.generate(
-            troops.length,
-            (index) => SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatScreen(
-                          troopName:
-                              unescape.convert(troops[index]['name'] ?? ''),
-                          threadId: troops[index]['thread_id'],
-                          postId: troops[index]['post_id']),
-                    ),
-                  );
-                },
-                child: Text(unescape.convert(troops[index]['name'] ?? '')),
-              ),
-            ),
-          ),
         ),
       ),
     );
