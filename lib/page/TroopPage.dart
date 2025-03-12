@@ -141,6 +141,23 @@ class _TroopPageState extends State<TroopPage> {
                                   height: 24,
                                 ),
                               ),
+                              troops[index]['link'] != null &&
+                                      troops[index]['link'] > 0
+                                  ? Text(
+                                      formatDateWithTime(
+                                        unescape.convert(
+                                            troops[index]['dateStart'] ?? ''),
+                                        unescape.convert(
+                                            troops[index]['dateEnd'] ?? ''),
+                                      ),
+                                    )
+                                  : Text(
+                                      formatDate(
+                                        unescape.convert(
+                                            troops[index]['dateStart'] ?? ''),
+                                      ),
+                                    ),
+                              SizedBox(height: 5),
                               Text(unescape
                                   .convert(troops[index]['name'] ?? '')),
                               SizedBox(height: 5),
