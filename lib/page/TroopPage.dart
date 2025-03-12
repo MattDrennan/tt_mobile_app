@@ -94,7 +94,7 @@ class _TroopPageState extends State<TroopPage> {
       appBar: buildAppBar(context, 'Troops'),
       body: Column(
         children: [
-          /// **🔍 Search Bar**
+          /// **Search Bar**
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
