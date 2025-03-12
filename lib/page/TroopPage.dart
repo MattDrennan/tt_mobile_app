@@ -150,8 +150,7 @@ class _TroopPageState extends State<TroopPage> {
                                     : '${troops[index]['trooper_count']?.toString() ?? '0'} Troopers Attending',
                                 style: TextStyle(
                                   color:
-                                      (troops[index]['trooper_count'] ?? 0) ==
-                                              0 // Explicit comparison to 0
+                                      (troops[index]['trooper_count'] ?? 0) < 2
                                           ? Colors.red
                                           : Colors.blue,
                                 ),
