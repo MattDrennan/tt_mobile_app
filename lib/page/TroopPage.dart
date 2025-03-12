@@ -20,11 +20,21 @@ class TroopPage extends StatefulWidget {
 
 class _TroopPageState extends State<TroopPage> {
   List<dynamic> troops = [];
+  List<dynamic> filteredTroops = []; // Holds the filtered results
   int selectedSquad = 0;
+  final TextEditingController searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchTroops(0);
+    searchController.addListener(() {
+      filterTroops();
+    });
+  }
 
   Future<void> fetchTroops(int squad) async {
     try {
-      // Open the Hive box
       final box = Hive.box('TTMobileApp');
 
       final response = await http.get(
@@ -37,12 +47,13 @@ class _TroopPageState extends State<TroopPage> {
 
       selectedSquad = squad;
 
-      if (!mounted) return; // Ensure widget is mounted before proceeding
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
           troops = data['troops'];
+          filteredTroops = troops; // Initialize filtered list
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -64,124 +75,147 @@ class _TroopPageState extends State<TroopPage> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    fetchSiteStatus(context);
-    selectedSquad = 0;
-    troops = [];
-    fetchTroops(0);
+  /// **Filters troops as user types in the search bar**
+  void filterTroops() {
+    String query = searchController.text.toLowerCase();
+    setState(() {
+      filteredTroops = troops
+          .where((troop) => unescape
+              .convert(troop['name'] ?? '')
+              .toLowerCase()
+              .contains(query))
+          .toList();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: buildAppBar(context, 'Troops'),
-        body: Column(
-          children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: List.generate(6, (int indexSquad) {
-                  // Map index to squad name
-                  const squadNames = [
-                    'All',
-                    'Everglades Squad',
-                    'Makaze Squad',
-                    'Parjai Squad',
-                    'Squad 7',
-                    'Tampa Bay Squad'
-                  ];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: ElevatedButton(
-                      onPressed: () => fetchTroops(indexSquad),
-                      child: Text(squadNames[indexSquad]),
-                    ),
-                  );
-                }),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: List.generate(
-                    troops.length,
-                    (int index) => Padding(
-                      padding: const EdgeInsets.only(
-                          bottom: 16.0), // Adds margin between buttons
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EventPage(
-                                    troopid: troops[index]['troopid'],
-                                  ),
-                                ));
-                          },
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10.0),
-                                child: Image.asset(
-                                  [
-                                    'assets/icons/garrison_icon.png',
-                                    'assets/icons/everglades_icon.png',
-                                    'assets/icons/makaze_icon.png',
-                                    'assets/icons/parjai_icon.png',
-                                    'assets/icons/squad7_icon.png',
-                                    'assets/icons/tampabay_icon.png'
-                                  ][(troops[index]['squad'] ?? 0).clamp(0,
-                                      5)], // Clamp ensures index stays within valid range (0-5)
-                                  width: 24,
-                                  height: 24,
-                                ),
-                              ),
-                              troops[index]['link'] != null &&
-                                      troops[index]['link'] > 0
-                                  ? Text(
-                                      formatDateWithTime(
-                                        unescape.convert(
-                                            troops[index]['dateStart'] ?? ''),
-                                        unescape.convert(
-                                            troops[index]['dateEnd'] ?? ''),
-                                      ),
-                                    )
-                                  : Text(
-                                      formatDate(
-                                        unescape.convert(
-                                            troops[index]['dateStart'] ?? ''),
-                                      ),
-                                    ),
-                              SizedBox(height: 5),
-                              Text(unescape
-                                  .convert(troops[index]['name'] ?? '')),
-                              SizedBox(height: 5),
-                              Text(
-                                (troops[index]['trooper_count'] ?? 0) < 2
-                                    ? 'NOT ENOUGH TROOPERS FOR THIS EVENT!'
-                                    : '${troops[index]['trooper_count']?.toString() ?? '0'} Troopers Attending',
-                                style: TextStyle(
-                                  color:
-                                      (troops[index]['trooper_count'] ?? 0) < 2
-                                          ? Colors.red
-                                          : Colors.blue,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+      appBar: buildAppBar(context, 'Troops'),
+      body: Column(
+        children: [
+          /// **🔍 Search Bar**
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: 'Search Troops',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
-          ],
-        ));
+          ),
+
+          /// **Squad Selection Row**
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(6, (int indexSquad) {
+                const squadNames = [
+                  'All',
+                  'Everglades Squad',
+                  'Makaze Squad',
+                  'Parjai Squad',
+                  'Squad 7',
+                  'Tampa Bay Squad'
+                ];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: ElevatedButton(
+                    onPressed: () => fetchTroops(indexSquad),
+                    child: Text(squadNames[indexSquad]),
+                  ),
+                );
+              }),
+            ),
+          ),
+
+          /// **Troops List**
+          Expanded(
+            child: filteredTroops.isEmpty
+                ? Center(child: Text('No troops found!'))
+                : ListView.builder(
+                    itemCount: filteredTroops.length,
+                    itemBuilder: (context, index) {
+                      var troop = filteredTroops[index];
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EventPage(
+                                      troopid: troop['troopid'],
+                                    ),
+                                  ));
+                            },
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 10.0),
+                                  child: Image.asset(
+                                    [
+                                      'assets/icons/garrison_icon.png',
+                                      'assets/icons/everglades_icon.png',
+                                      'assets/icons/makaze_icon.png',
+                                      'assets/icons/parjai_icon.png',
+                                      'assets/icons/squad7_icon.png',
+                                      'assets/icons/tampabay_icon.png'
+                                    ][(troop['squad'] ?? 0).clamp(0, 5)],
+                                    width: 24,
+                                    height: 24,
+                                  ),
+                                ),
+                                troop['link'] != null && troop['link'] > 0
+                                    ? Text(
+                                        formatDateWithTime(
+                                          unescape.convert(
+                                              troop['dateStart'] ?? ''),
+                                          unescape
+                                              .convert(troop['dateEnd'] ?? ''),
+                                        ),
+                                        style: TextStyle(color: Colors.blue),
+                                      )
+                                    : Text(
+                                        formatDate(
+                                          unescape.convert(
+                                              troop['dateStart'] ?? ''),
+                                        ),
+                                      ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  unescape.convert(troop['name'] ?? ''),
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  (troop['trooper_count'] ?? 0) < 2
+                                      ? 'NOT ENOUGH TROOPERS FOR THIS EVENT!'
+                                      : '${troop['trooper_count']?.toString() ?? '0'} Troopers Attending',
+                                  style: TextStyle(
+                                    color: (troop['trooper_count'] ?? 0) < 2
+                                        ? Colors.red
+                                        : Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 }
