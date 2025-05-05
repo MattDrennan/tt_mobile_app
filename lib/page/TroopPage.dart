@@ -23,6 +23,7 @@ class _TroopPageState extends State<TroopPage> {
   List<dynamic> filteredTroops = []; // Holds the filtered results
   int selectedSquad = 0;
   final TextEditingController searchController = TextEditingController();
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -34,6 +35,10 @@ class _TroopPageState extends State<TroopPage> {
   }
 
   Future<void> fetchTroops(int squad) async {
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       final box = Hive.box('TTMobileApp');
 
@@ -71,6 +76,12 @@ class _TroopPageState extends State<TroopPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
       }
     }
   }
@@ -135,84 +146,90 @@ class _TroopPageState extends State<TroopPage> {
 
           /// **Troops List**
           Expanded(
-            child: filteredTroops.isEmpty
-                ? Center(child: Text('No troops found!'))
-                : ListView.builder(
-                    itemCount: filteredTroops.length,
-                    itemBuilder: (context, index) {
-                      var troop = filteredTroops[index];
+            child: isLoading
+                ? Center(child: CircularProgressIndicator())
+                : (filteredTroops.isEmpty
+                    ? Center(child: Text('No troops found!'))
+                    : ListView.builder(
+                        itemCount: filteredTroops.length,
+                        itemBuilder: (context, index) {
+                          var troop = filteredTroops[index];
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => EventPage(
-                                      troopid: troop['troopid'],
-                                    ),
-                                  ));
-                            },
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 10.0),
-                                  child: Image.asset(
-                                    [
-                                      'assets/icons/garrison_icon.png',
-                                      'assets/icons/everglades_icon.png',
-                                      'assets/icons/makaze_icon.png',
-                                      'assets/icons/parjai_icon.png',
-                                      'assets/icons/squad7_icon.png',
-                                      'assets/icons/tampabay_icon.png'
-                                    ][(troop['squad'] ?? 0).clamp(0, 5)],
-                                    width: 24,
-                                    height: 24,
-                                  ),
-                                ),
-                                troop['link'] != null && troop['link'] > 0
-                                    ? Text(
-                                        formatDateWithTime(
-                                          unescape.convert(
-                                              troop['dateStart'] ?? ''),
-                                          unescape
-                                              .convert(troop['dateEnd'] ?? ''),
-                                        ),
-                                        style: TextStyle(color: Colors.blue),
-                                      )
-                                    : Text(
-                                        formatDate(
-                                          unescape.convert(
-                                              troop['dateStart'] ?? ''),
-                                        ),
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => EventPage(
+                                        troopid: troop['troopid'],
                                       ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  unescape.convert(troop['name'] ?? ''),
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  );
+                                },
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 10.0),
+                                      child: Image.asset(
+                                        [
+                                          'assets/icons/garrison_icon.png',
+                                          'assets/icons/everglades_icon.png',
+                                          'assets/icons/makaze_icon.png',
+                                          'assets/icons/parjai_icon.png',
+                                          'assets/icons/squad7_icon.png',
+                                          'assets/icons/tampabay_icon.png'
+                                        ][(troop['squad'] ?? 0).clamp(0, 5)],
+                                        width: 24,
+                                        height: 24,
+                                      ),
+                                    ),
+                                    troop['link'] != null && troop['link'] > 0
+                                        ? Text(
+                                            formatDateWithTime(
+                                              unescape.convert(
+                                                  troop['dateStart'] ?? ''),
+                                              unescape.convert(
+                                                  troop['dateEnd'] ?? ''),
+                                            ),
+                                            style:
+                                                TextStyle(color: Colors.blue),
+                                          )
+                                        : Text(
+                                            formatDate(
+                                              unescape.convert(
+                                                  troop['dateStart'] ?? ''),
+                                            ),
+                                          ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      unescape.convert(troop['name'] ?? ''),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      (troop['trooper_count'] ?? 0) < 2
+                                          ? 'NOT ENOUGH TROOPERS FOR THIS EVENT!'
+                                          : '${troop['trooper_count']?.toString() ?? '0'} Troopers Attending',
+                                      style: TextStyle(
+                                        color: (troop['trooper_count'] ?? 0) < 2
+                                            ? Colors.red
+                                            : Colors.green,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  (troop['trooper_count'] ?? 0) < 2
-                                      ? 'NOT ENOUGH TROOPERS FOR THIS EVENT!'
-                                      : '${troop['trooper_count']?.toString() ?? '0'} Troopers Attending',
-                                  style: TextStyle(
-                                    color: (troop['trooper_count'] ?? 0) < 2
-                                        ? Colors.red
-                                        : Colors.green,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      )),
           ),
         ],
       ),
