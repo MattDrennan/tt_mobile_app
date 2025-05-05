@@ -2,3 +2,4 @@
 -Upload photos in troop
 -Show photos in app & instuctional photos
 -Push notifications
+-Server time is wrong when signing up (UTC to Eastern)
