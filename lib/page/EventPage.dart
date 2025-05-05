@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
 import 'package:intl/intl.dart';
 import 'package:tt_mobile_app/custom/AppBar.dart';
+import 'package:tt_mobile_app/page/AddFriend.dart';
 import 'package:tt_mobile_app/page/SignUpScreen.dart';
 import 'package:add_2_calendar/add_2_calendar.dart';
 
@@ -519,28 +520,54 @@ class _EventPageState extends State<EventPage> {
                       child: Text('Go To Sign Up'),
                     ),
                   )
-                : SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            Colors.red, // Set button color to red for "Cancel"
+                : Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors
+                                .red, // Set button color to red for "Cancel"
+                          ),
+                          onPressed: () async {
+                            if (await cancelTroop(widget.troopid)) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('You have canceled the signup.')),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Something went wrong.')),
+                              );
+                            }
+                          },
+                          child: Text('Cancel Signup'),
+                        ),
                       ),
-                      onPressed: () async {
-                        if (await cancelTroop(widget.troopid)) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('You have canceled the signup.')),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Something went wrong.')),
-                          );
-                        }
-                      },
-                      child: Text('Cancel Signup'),
-                    ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddFriend(
+                                  troopid: widget.troopid,
+                                  limitedEvent: troopData?['limitedEvent'] ?? 0,
+                                  allowTentative:
+                                      troopData?['allowTentative'] ?? 0,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: Icon(Icons.person_add),
+                          label: Text('Add Friend'),
+                        ),
+                      ),
+                    ],
                   ),
             const Divider(),
             const SizedBox(height: 10),
