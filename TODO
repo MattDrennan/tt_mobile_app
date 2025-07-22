@@ -4,3 +4,4 @@
 -Push notifications
 -Server time is wrong when signing up (UTC to Eastern)
 -Stats/Profiles
+-Fetch site status is not used
