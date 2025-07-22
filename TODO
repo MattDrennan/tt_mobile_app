@@ -4,4 +4,5 @@
 -Push notifications
 -Server time is wrong when signing up (UTC to Eastern)
 -Stats/Profiles
--Fetch site status is not used
+-Fetch site status is not used, don't allow app use after
+-Check if event is closed, canceled, etc, don't show sign up
