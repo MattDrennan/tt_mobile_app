@@ -11,6 +11,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
 import 'package:tt_mobile_app/custom/AppBar.dart';
+import 'package:tt_mobile_app/custom/Functions.dart';
 import 'package:tt_mobile_app/page/ChatPage.dart';
 import 'package:tt_mobile_app/page/ConfirmPage.dart';
 import 'package:tt_mobile_app/page/TroopPage.dart';
@@ -443,6 +444,9 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     confirmTroopsFuture = fetchConfirmTroops(int.parse(_user.id));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fetchSiteStatus(context);
+    });
   }
 
   void refreshConfirmTroops() {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:tt_mobile_app/main.dart';
 import 'package:intl/intl.dart';
+import 'package:tt_mobile_app/page/ClosedPage.dart';
 
 Future<void> fetchSiteStatus(BuildContext context) async {
   try {
@@ -22,14 +23,10 @@ Future<void> fetchSiteStatus(BuildContext context) async {
       if (data is Map<String, dynamic> &&
           data['isWebsiteClosed'] == 1 &&
           data['siteMessage'] != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['siteMessage'])),
-        );
-
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const MyHomePage(title: 'Troop Tracker'),
+            builder: (context) => ClosedPage(message: data['siteMessage']),
           ),
         );
       }

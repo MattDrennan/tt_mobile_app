@@ -6,5 +6,5 @@ class Trooper {
   Trooper({required this.id, required this.name, required this.tkid});
 
   @override
-  String toString() => name + ' - ' + tkid; // For display purposes
+  String toString() => '$name - $tkid'; // For display purposes
 }

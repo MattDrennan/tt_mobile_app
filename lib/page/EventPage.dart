@@ -5,6 +5,7 @@ import 'package:flutter_bbcode/flutter_bbcode.dart' hide ColorTag, UrlTag;
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/page/AddFriend.dart';
@@ -28,6 +29,98 @@ class EventPage extends StatefulWidget {
 }
 
 class _EventPageState extends State<EventPage> {
+  List<dynamic> photoList = [];
+
+  bool isEventClosed() {
+    final closed = troopData?['closed'] ?? 0;
+    return closed == 2 || closed == 3 || closed == 4;
+  }
+
+  bool isEventInFuture() {
+    final endDateStr = troopData?['dateEnd'];
+    if (endDateStr == null) return false;
+
+    try {
+      final endDate = DateFormat("yyyy-MM-dd HH:mm:ss").parse(endDateStr);
+      return DateTime.now().isBefore(endDate);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> fetchPhotos(int troopid) async {
+    try {
+      final box = Hive.box('TTMobileApp');
+      final response = await http.get(
+        Uri.parse(
+            'https://www.fl501st.com/troop-tracker/mobileapi.php?action=get_photos_by_event&troopid=$troopid'),
+        headers: {
+          'API-Key': box.get('apiKey') ?? '',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          photoList = data['photos'];
+        });
+      }
+    } catch (e) {
+      print('Error loading photos: $e');
+    }
+  }
+
+  Future<void> uploadImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile == null) return;
+
+    final box = Hive.box('TTMobileApp');
+    final apiKey = box.get('apiKey') ?? '';
+    final rawData = box.get('userData');
+    final userData = json.decode(rawData);
+
+    final int trooperId = int.parse(userData['user']['user_id'].toString());
+
+    final uri = Uri.parse(
+        'https://www.fl501st.com/troop-tracker/script/php/upload.php?client=mobile');
+
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['API-Key'] = apiKey
+      ..fields['troopid'] = widget.troopid.toString()
+      ..fields['trooperid'] = trooperId.toString()
+      ..fields['admin'] = isEventInFuture() ? '1' : '0'
+      ..files.add(await http.MultipartFile.fromPath('file', pickedFile.path));
+
+    try {
+      final response = await request.send();
+      final responseData = await http.Response.fromStream(response);
+
+      if (!mounted) return;
+
+      final result = json.decode(responseData.body);
+
+      if (response.statusCode == 200 && result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text(result['message'] ?? 'Image uploaded successfully.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Upload failed.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload error: $e')),
+        );
+      }
+    }
+  }
+
   Map<String, dynamic>? troopData;
   List<dynamic>? rosterData;
   bool isInRoster = false;
@@ -124,9 +217,9 @@ class _EventPageState extends State<EventPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        /*ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
-        );
+        );*/
       }
     }
   }
@@ -159,9 +252,9 @@ class _EventPageState extends State<EventPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        /*ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
-        );
+        );*/
       }
     }
   }
@@ -246,6 +339,7 @@ class _EventPageState extends State<EventPage> {
     fetchEvent(widget.troopid);
     fetchRoster(widget.troopid);
     checkInRoster();
+    fetchPhotos(widget.troopid);
   }
 
   final customStylesheet = defaultBBStylesheet(
@@ -497,78 +591,141 @@ class _EventPageState extends State<EventPage> {
                   ),
                 ],
               )
-            else
+            else ...[
+              const Divider(),
+              const SizedBox(height: 10),
               Text("No roster data available."),
+            ],
+            if (photoList.isNotEmpty) ...[
+              const Divider(),
+              const SizedBox(height: 10),
+              const Text("Event Photos",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              GridView.builder(
+                shrinkWrap: true,
+                physics:
+                    NeverScrollableScrollPhysics(), // disables inner scrolling
+                itemCount: photoList.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 1, // square
+                ),
+                itemBuilder: (context, index) {
+                  final photo = photoList[index];
+                  return GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text("Uploaded by ${photo['uploaded_by']}"),
+                          content: Image.network(photo['full_url']),
+                          actions: [
+                            TextButton(
+                              child: Text('Close'),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Image.network(
+                            photo['thumbnail_url'],
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        if (photo['admin'] == 1)
+                          Positioned(
+                            right: 4,
+                            top: 4,
+                            child: Icon(Icons.school,
+                                color: Colors.green, size: 20),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
             const Divider(),
             const SizedBox(height: 10),
-            !isInRoster
-                ? SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SignUpScreen(
-                              troopid: widget.troopid,
-                              limitedEvent: troopData?['limitedEvent'] ?? 0,
-                              allowTentative: troopData?['allowTentative'] ?? 0,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Text('Go To Sign Up'),
-                    ),
-                  )
-                : Column(
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors
-                                .red, // Set button color to red for "Cancel"
-                          ),
-                          onPressed: () async {
-                            if (await cancelTroop(widget.troopid)) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content:
-                                        Text('You have canceled the signup.')),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Something went wrong.')),
-                              );
-                            }
-                          },
-                          child: Text('Cancel Signup'),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => AddFriend(
-                                  troopid: widget.troopid,
-                                  limitedEvent: troopData?['limitedEvent'] ?? 0,
-                                  allowTentative:
-                                      troopData?['allowTentative'] ?? 0,
-                                ),
+            if (!isEventClosed()) ...[
+              !isInRoster
+                  ? SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SignUpScreen(
+                                troopid: widget.troopid,
+                                limitedEvent: troopData?['limitedEvent'] ?? 0,
+                                allowTentative:
+                                    troopData?['allowTentative'] ?? 0,
                               ),
-                            );
-                          },
-                          icon: Icon(Icons.person_add),
-                          label: Text('Add Friend'),
-                        ),
+                            ),
+                          );
+                        },
+                        child: Text('Go To Sign Up'),
                       ),
-                    ],
-                  ),
+                    )
+                  : Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors
+                                  .red, // Set button color to red for "Cancel"
+                            ),
+                            onPressed: () async {
+                              if (await cancelTroop(widget.troopid)) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'You have canceled the signup.')),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('Something went wrong.')),
+                                );
+                              }
+                            },
+                            child: Text('Cancel Signup'),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AddFriend(
+                                    troopid: widget.troopid,
+                                    limitedEvent:
+                                        troopData?['limitedEvent'] ?? 0,
+                                    allowTentative:
+                                        troopData?['allowTentative'] ?? 0,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: Icon(Icons.person_add),
+                            label: Text('Add Friend'),
+                          ),
+                        ),
+                      ],
+                    ),
+            ],
             const Divider(),
             const SizedBox(height: 10),
             // **"Add to Calendar" Button**
@@ -600,6 +757,17 @@ class _EventPageState extends State<EventPage> {
                 label: Text('Go To Discussion'),
               ),
             ),
+            const Divider(),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: Icon(Icons.upload_file),
+                label: Text('Upload Image'),
+                onPressed: uploadImage,
+              ),
+            ),
+            const SizedBox(height: 10),
           ],
         ),
       ),
