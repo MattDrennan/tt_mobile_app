@@ -53,79 +53,94 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: buildAppBar(context, 'My Troops: Chat'),
-        body: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: List.generate(
-                    troops.length,
-                    (int index) => Padding(
-                      padding: const EdgeInsets.only(
-                          bottom: 16.0), // Adds margin between buttons
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatScreen(
-                                    troopName: unescape
-                                        .convert(troops[index]['name'] ?? ''),
-                                    threadId: troops[index]['thread_id'],
-                                    postId: troops[index]['post_id']),
-                              ),
-                            );
-                          },
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10.0),
-                                child: Image.asset(
-                                  [
-                                    'assets/icons/garrison_icon.png',
-                                    'assets/icons/everglades_icon.png',
-                                    'assets/icons/makaze_icon.png',
-                                    'assets/icons/parjai_icon.png',
-                                    'assets/icons/squad7_icon.png',
-                                    'assets/icons/tampabay_icon.png'
-                                  ][(troops[index]['squad'] ?? 0).clamp(0,
-                                      5)], // Clamp ensures index stays within valid range (0-5)
-                                  width: 24,
-                                  height: 24,
-                                ),
-                              ),
-                              troops[index]['link'] != null &&
-                                      troops[index]['link'] > 0
-                                  ? Text(
-                                      formatDateWithTime(
-                                        unescape.convert(
-                                            troops[index]['dateStart'] ?? ''),
-                                        unescape.convert(
-                                            troops[index]['dateEnd'] ?? ''),
-                                      ),
-                                    )
-                                  : Text(
-                                      formatDate(
-                                        unescape.convert(
-                                            troops[index]['dateStart'] ?? ''),
+        body: troops.isEmpty
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Text(
+                    'Not signed up for any troops.',
+                    style: TextStyle(fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )
+            : Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: List.generate(
+                          troops.length,
+                          (int index) => Padding(
+                            padding: const EdgeInsets.only(
+                                bottom: 16.0), // Adds margin between buttons
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ChatScreen(
+                                          troopName: unescape.convert(
+                                              troops[index]['name'] ?? ''),
+                                          threadId: troops[index]['thread_id'],
+                                          postId: troops[index]['post_id']),
+                                    ),
+                                  );
+                                },
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 10.0),
+                                      child: Image.asset(
+                                        [
+                                          'assets/icons/garrison_icon.png',
+                                          'assets/icons/everglades_icon.png',
+                                          'assets/icons/makaze_icon.png',
+                                          'assets/icons/parjai_icon.png',
+                                          'assets/icons/squad7_icon.png',
+                                          'assets/icons/tampabay_icon.png'
+                                        ][(troops[index]['squad'] ?? 0).clamp(0,
+                                            5)], // Clamp ensures index stays within valid range (0-5)
+                                        width: 24,
+                                        height: 24,
                                       ),
                                     ),
-                              SizedBox(height: 5),
-                              Text(unescape
-                                  .convert(troops[index]['name'] ?? '')),
-                            ],
+                                    troops[index]['link'] != null &&
+                                            troops[index]['link'] > 0
+                                        ? Text(
+                                            formatDateWithTime(
+                                              unescape.convert(troops[index]
+                                                      ['dateStart'] ??
+                                                  ''),
+                                              unescape.convert(troops[index]
+                                                      ['dateEnd'] ??
+                                                  ''),
+                                            ),
+                                          )
+                                        : Text(
+                                            formatDate(
+                                              unescape.convert(troops[index]
+                                                      ['dateStart'] ??
+                                                  ''),
+                                            ),
+                                          ),
+                                    SizedBox(height: 5),
+                                    Text(unescape
+                                        .convert(troops[index]['name'] ?? '')),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            ),
-          ],
-        ));
+                ],
+              ));
   }
 }
