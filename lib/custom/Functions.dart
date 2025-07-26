@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:tt_mobile_app/main.dart';
 import 'package:intl/intl.dart';
 import 'package:tt_mobile_app/page/ClosedPage.dart';
 
