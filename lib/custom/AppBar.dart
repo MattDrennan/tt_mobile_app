@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tt_mobile_app/main.dart';
+import 'package:tt_mobile_app/page/MyHomePage.dart';
 
 AppBar buildAppBar(BuildContext context, String title) {
   return AppBar(

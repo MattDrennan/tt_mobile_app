@@ -10,18 +10,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
-import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/custom/Functions.dart';
-import 'package:tt_mobile_app/page/ChatPage.dart';
-import 'package:tt_mobile_app/page/ConfirmPage.dart';
-import 'package:tt_mobile_app/page/TroopPage.dart';
-import 'package:tt_mobile_app/page/myTroops.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:tt_mobile_app/page/LoginPage.dart';
+import 'package:tt_mobile_app/page/MyHomePage.dart';
 import 'package:html_unescape/html_unescape.dart';
 import 'page/ChatScreen.dart';
 
-// Global
-types.User _user = const types.User(id: 'user');
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 // Unescape HTML entities
@@ -62,54 +56,6 @@ void initNotifications() async {
     print('User granted permission');
   } else {
     print('User declined or has not accepted permission');
-  }
-}
-
-Future<bool> getToken(String userId) async {
-  // Retrieve APNS token
-  String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-
-  if (apnsToken == null) {
-    print('Push notifications may not work.');
-    return true;
-  } else {
-    // APNS Token
-    print('APNS token: $apnsToken');
-
-    // Open the Hive box
-    final box = Hive.box('TTMobileApp');
-
-    // Retrieve FCM token
-    String? fcmToken = await FirebaseMessaging.instance.getToken();
-    if (fcmToken != null) {
-      print('FCM Token: $fcmToken');
-
-      final response = await http.post(
-        Uri.parse('https://www.fl501st.com/troop-tracker/mobileapi.php'),
-        body: {
-          'action': 'saveFCM',
-          'userid': userId,
-          'fcm': fcmToken,
-        },
-        headers: {
-          'API-Key': box.get('apiKey') ?? '',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        // Save FCM
-        final box = Hive.box('TTMobileApp');
-        box.put('fcm', fcmToken);
-        print('Success');
-        return true;
-      } else {
-        print('Fail');
-        return false;
-      }
-    } else {
-      print('Failed to retrieve FCM token.');
-      return false;
-    }
   }
 }
 
@@ -272,7 +218,7 @@ class AuthCheck extends StatelessWidget {
       }
 
       // Set user object (assuming _user is a global or class variable)
-      _user = types.User(
+      user = types.User(
         id: userData['user']['user_id'].toString(),
         firstName: userData['user']['username'], // Set the user's name
         imageUrl: userData['user']?['avatar_urls']?['s'], // Avatar URL
@@ -296,330 +242,25 @@ class AuthCheck extends StatelessWidget {
       future: isLoggedIn(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasData && snapshot.data == true) {
-          return const MyHomePage(title: 'Troop Tracker');
-        } else {
-          return const LoginPage();
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
+
+        if (snapshot.hasError) {
+          return const Scaffold(
+            body: Center(child: Text('Something went wrong.')),
+          );
+        }
+
+        if (snapshot.hasData && snapshot.data == true) {
+          // Already logged in
+          return const MyHomePage(title: 'Troop Tracker');
+        }
+
+        // Not logged in
+        return const LoginPage();
       },
-    );
-  }
-}
-
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
-
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
-
-class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  Future<void> _login() async {
-    final response = await http.post(
-      Uri.parse(
-          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=login_with_forum'),
-      body: {
-        'login': _usernameController.text,
-        'password': _passwordController.text,
-      },
-    );
-
-    final userData = json.decode(response.body);
-
-    if (response.statusCode == 200 && userData?['success'] == true) {
-      final box = Hive.box('TTMobileApp');
-      box.put('userData', json.encode(userData));
-
-      _user = types.User(
-        id: userData!['user']['user_id'].toString(),
-        firstName: userData?['user']['username'], // Set the user's name
-        imageUrl: userData?['user']?['avatar_urls']
-            ?['s'], // Replace with actual avatar URL or leave null
-      );
-
-      box.put('apiKey', userData?['apiKey']);
-
-      getToken(userData!['user']['user_id'].toString());
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-            builder: (context) => const MyHomePage(title: 'Troop Tracker')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login failed!')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildAppBar(context, 'Troop Tracker'),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Image.asset(
-                'assets/logo.png',
-                height: 200,
-                width: 200,
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _usernameController,
-                decoration: const InputDecoration(labelText: 'Username'),
-              ),
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _login,
-                child: const Text('Login'),
-              ),
-              const SizedBox(height: 50), // Space between button and links
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  GestureDetector(
-                    onTap: () {
-                      launchUrl(Uri.parse(
-                          'https://www.fl501st.com/boards/index.php?help/terms/'));
-                    },
-                    child: const Text(
-                      'Terms and Rules',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 20), // Space between links
-                  GestureDetector(
-                    onTap: () {
-                      launchUrl(Uri.parse(
-                          'https://www.fl501st.com/boards/index.php?help/privacy-policy/'));
-                    },
-                    child: const Text(
-                      'Privacy Policy',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  late Future<bool> confirmTroopsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    confirmTroopsFuture = fetchConfirmTroops(int.parse(_user.id));
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      fetchSiteStatus(context);
-    });
-  }
-
-  void refreshConfirmTroops() {
-    setState(() {
-      confirmTroopsFuture = fetchConfirmTroops(int.parse(_user.id));
-    });
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    final box = Hive.box('TTMobileApp');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Logging out...')),
-    );
-
-    final response = await http.post(
-      Uri.parse('https://www.fl501st.com/troop-tracker/mobileapi.php'),
-      body: {
-        'action': 'logoutFCM',
-        'apiKey': box.get('apiKey') ?? '',
-        'fcm': box.get('fcm') ?? '',
-      },
-      headers: {
-        'API-Key': box.get('apiKey') ?? '',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      print('Success');
-      await box.clear(); // Clear all data, ensuring complete logout
-    } else {
-      print('Fail');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred while logging out!')),
-      );
-    }
-
-    Future.delayed(const Duration(seconds: 1), () {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-        (route) => false,
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildAppBar(context, widget.title),
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Image.asset(
-              'assets/logo.png',
-              height: 200,
-              width: 200,
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const TroopPage()),
-                  );
-                },
-                child: const Text('View Troops'),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const myTroops()),
-                  ).then((_) => refreshConfirmTroops()); // Refresh on return
-                },
-                child: const Text('My Troops'),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ChatPage()),
-                  ).then((_) => refreshConfirmTroops()); // Refresh on return
-                },
-                child: const Text('Chat'),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Confirm Troops Button (conditionally displayed)
-            FutureBuilder<bool>(
-              future: confirmTroopsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.hasData && snapshot.data == true) {
-                  return Column(
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ConfirmPage(
-                                  trooperId: int.parse(_user.id),
-                                ),
-                              ),
-                            ).then((_) =>
-                                refreshConfirmTroops()); // Refresh on return
-                          },
-                          child: const Text('Confirm Troops'),
-                        ),
-                      ),
-                      const SizedBox(height: 20), // Add some spacing
-                    ],
-                  );
-                } else {
-                  return const SizedBox.shrink(); // Don't render anything
-                }
-              },
-            ),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _logout(context),
-                child: const Text('Log Out'),
-              ),
-            ),
-            const SizedBox(height: 50), // Space between button and links
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                GestureDetector(
-                  onTap: () {
-                    launchUrl(Uri.parse(
-                        'https://www.fl501st.com/boards/index.php?help/terms/'));
-                  },
-                  child: const Text(
-                    'Terms and Rules',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 20), // Space between links
-                GestureDetector(
-                  onTap: () {
-                    launchUrl(Uri.parse(
-                        'https://www.fl501st.com/boards/index.php?help/privacy-policy/'));
-                  },
-                  child: const Text(
-                    'Privacy Policy',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

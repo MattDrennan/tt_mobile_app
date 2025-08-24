@@ -15,9 +15,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:hive/hive.dart';
 import 'package:tt_mobile_app/custom/AppBar.dart';
-
-// Global
-types.User _user = const types.User(id: 'user');
+import 'package:tt_mobile_app/custom/Functions.dart';
 
 class ChatScreen extends StatefulWidget {
   final String troopName;
@@ -402,7 +400,7 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Chat(
         messages: _messages,
         onSendPressed: _addMessage,
-        user: _user,
+        user: user,
         onAttachmentPressed: () {
           // Show options to pick or capture image
           showModalBottomSheet(
@@ -432,7 +430,7 @@ class _ChatScreenState extends State<ChatScreen> {
           );
         },
         customMessageBuilder: (message, {required int messageWidth}) {
-          final isSentByUser = message.author.id == _user.id;
+          final isSentByUser = message.author.id == user.id;
 
           if (message.metadata != null &&
               message.metadata!.containsKey('html')) {
