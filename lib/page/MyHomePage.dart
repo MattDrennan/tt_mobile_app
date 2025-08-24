@@ -89,6 +89,19 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: const Text('Chat'),
               ),
             ),
+            /*const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const myTroops()),
+                  ).then((_) => refreshConfirmTroops()); // Refresh on return
+                },
+                child: const Text('Profile'),
+              ),
+            ),*/
             const SizedBox(height: 20),
             // Confirm Troops Button (conditionally displayed)
             FutureBuilder<bool>(
