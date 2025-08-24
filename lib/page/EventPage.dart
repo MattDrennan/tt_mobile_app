@@ -8,6 +8,7 @@ import 'package:html_unescape/html_unescape.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:tt_mobile_app/custom/AppBar.dart';
+import 'package:tt_mobile_app/custom/LimitRow.dart';
 import 'package:tt_mobile_app/page/AddFriend.dart';
 import 'package:tt_mobile_app/page/SignUpScreen.dart';
 import 'package:add_2_calendar/add_2_calendar.dart';
@@ -455,6 +456,46 @@ class _EventPageState extends State<EventPage> {
             BBCodeText(
                 data: unescape.convert(troopData?['comments'] ?? ''),
                 stylesheet: customStylesheet),
+            if (troopData?['isLimited'] == true) ...[
+              const SizedBox(height: 10),
+              Text(
+                "Limited Event Info",
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const Divider(),
+              LimitRow(
+                total: troopData?['limitTotal'] != null
+                    ? "This event is limited to ${troopData!['limitTotal']} troopers."
+                    : null,
+                clubs: troopData?['limitClubs'], // may contain \n
+                extra: troopData?['limitAll'], // may contain \n
+              ),
+              if (troopData?['isLimited'] == 1) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.yellow[700], // background yellow
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    "Reminder: This event has been set as a manual selection event. "
+                    "When a trooper needs to make a change to their attending status "
+                    "or costume, troopers must comment below what changes need to be made, "
+                    "and command staff will make the changes. Please note, this only applies "
+                    "to manual selection events.",
+                    style: TextStyle(
+                      color: Colors.black, // black text for readability
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+
             // Roster Section
             if (rosterData != null && rosterData!.isNotEmpty)
               Column(
