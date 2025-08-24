@@ -173,6 +173,7 @@ class _TroopPageState extends State<TroopPage> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    const SizedBox(height: 5),
                                     Padding(
                                       padding:
                                           const EdgeInsets.only(bottom: 10.0),
@@ -214,15 +215,27 @@ class _TroopPageState extends State<TroopPage> {
                                     ),
                                     const SizedBox(height: 5),
                                     Text(
-                                      (troop['trooper_count'] ?? 0) < 2
-                                          ? 'NOT ENOUGH TROOPERS FOR THIS EVENT!'
+                                      (troop['notice'] != null &&
+                                              troop['notice']
+                                                  .toString()
+                                                  .trim()
+                                                  .isNotEmpty)
+                                          ? unescape.convert(
+                                              troop['notice'].toString())
                                           : '${troop['trooper_count']?.toString() ?? '0'} Troopers Attending',
                                       style: TextStyle(
-                                        color: (troop['trooper_count'] ?? 0) < 2
-                                            ? Colors.red
-                                            : Colors.green,
+                                        color: (troop['notice'] != null &&
+                                                troop['notice']
+                                                    .toString()
+                                                    .trim()
+                                                    .isNotEmpty)
+                                            ? ((troop['trooper_count'] ?? 0) < 2
+                                                ? Colors.red
+                                                : Colors.green)
+                                            : Colors.white,
                                       ),
                                     ),
+                                    const SizedBox(height: 5),
                                   ],
                                 ),
                               ),
