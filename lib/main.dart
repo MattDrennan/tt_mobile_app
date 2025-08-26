@@ -173,6 +173,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
+      debugShowCheckedModeBanner: false,
       title: 'Troop Tracker Mobile',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
