@@ -98,7 +98,7 @@ class _ConfirmPageState extends State<ConfirmPage> {
   }
 
   Future<void> updateStatusAndCostume(
-      {required int troopId, required int status, int? costumeId}) async {
+      {required int troopId, required String status, int? costumeId}) async {
     try {
       // Open the Hive box
       final box = Hive.box('TTMobileApp');
@@ -148,7 +148,7 @@ class _ConfirmPageState extends State<ConfirmPage> {
     for (int troopId in selectedTroops) {
       await updateStatusAndCostume(
         troopId: troopId,
-        status: 3,
+        status: 'attended',
         costumeId: selectedCostume?.id,
       );
       updatedTroops.add(troopId); // Mark as updated
@@ -180,7 +180,7 @@ class _ConfirmPageState extends State<ConfirmPage> {
     for (int troopId in selectedTroops) {
       await updateStatusAndCostume(
         troopId: troopId,
-        status: 4,
+        status: 'noshow',
       );
       updatedTroops.add(troopId); // Mark as updated
     }

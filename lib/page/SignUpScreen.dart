@@ -24,9 +24,15 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  int? selectedOption = 0;
+  String? selectedStatus;
   Costume? selectedCostume;
   Costume? backupCostume;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedStatus = widget.limitedEvent == 1 ? 'pending' : 'going';
+  }
 
   /// Fetch costumes dynamically for the dropdown
   Future<List<Costume>> fetchCostumes(String? filter) async {
@@ -71,28 +77,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DropdownButton<int>(
-              value: selectedOption,
+            DropdownButton<String>(
+              value: selectedStatus,
               items: [
                 if (widget.limitedEvent != 1) ...[
-                  DropdownMenuItem<int>(
-                    value: 0,
+                  DropdownMenuItem<String>(
+                    value: 'going',
                     child: Text("I'll be there!"),
                   ),
                   if (widget.allowTentative == 1)
-                    DropdownMenuItem<int>(
-                      value: 2,
+                    DropdownMenuItem<String>(
+                      value: 'tentative',
                       child: Text("Tentative"),
                     ),
                 ] else
-                  DropdownMenuItem<int>(
-                    value: 5,
+                  DropdownMenuItem<String>(
+                    value: 'pending',
                     child: Text("Request to attend (Pending)"),
                   ),
               ],
-              onChanged: (int? newValue) {
+              onChanged: (String? newValue) {
                 setState(() {
-                  selectedOption = newValue;
+                  selectedStatus = newValue;
                 });
               },
               isExpanded: true,
@@ -149,7 +155,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
-                  if (selectedOption == null || selectedCostume == null) {
+                  if (selectedStatus == null || selectedCostume == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content:
@@ -163,7 +169,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         'trooperid': userData['user']['user_id'],
                         'addedby': 0,
                         'troopid': widget.troopid,
-                        'status': selectedOption ?? 0,
+                        'status': selectedStatus,
                         'costume': selectedCostume?.id ?? 0,
                         'backupcostume': backupCostume?.id ?? 0,
                       }),
