@@ -38,6 +38,34 @@ class _ChatScreenState extends State<ChatScreen> {
   final imagePicker.ImagePicker _picker = imagePicker.ImagePicker();
   Timer? _timer; // Timer for polling
 
+  String _extractForumError(String responseBody, String fallbackMessage) {
+    try {
+      final decoded = json.decode(responseBody);
+
+      if (decoded is Map<String, dynamic>) {
+        final errors = decoded['errors'];
+        if (errors is List && errors.isNotEmpty) {
+          final firstError = errors.first;
+          if (firstError is Map<String, dynamic>) {
+            final message = firstError['message']?.toString();
+            if (message != null && message.isNotEmpty) {
+              return message;
+            }
+          }
+        }
+
+        final error = decoded['error']?.toString();
+        if (error != null && error.isNotEmpty) {
+          return error;
+        }
+      }
+    } catch (_) {
+      // Fall through to fallback message when the response is not JSON.
+    }
+
+    return fallbackMessage;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -255,6 +283,18 @@ class _ChatScreenState extends State<ChatScreen> {
         return data['key'];
       } else {
         print('Failed to fetch attachment key: ${response.body}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _extractForumError(
+                  response.body,
+                  'Failed to retrieve attachment key.',
+                ),
+              ),
+            ),
+          );
+        }
         return null;
       }
     } catch (e) {
@@ -276,7 +316,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
 
       // Determine MIME type of the image
-      final mimeType = lookupMimeType(imageFile.path);
+      final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
 
       // Create a multipart request for XenForo API
       var request = http.MultipartRequest(
@@ -295,7 +335,7 @@ class _ChatScreenState extends State<ChatScreen> {
         await http.MultipartFile.fromPath(
           'attachment',
           imageFile.path,
-          contentType: MediaType.parse(mimeType!),
+          contentType: MediaType.parse(mimeType),
         ),
       );
 
@@ -310,9 +350,6 @@ class _ChatScreenState extends State<ChatScreen> {
       final data = json.decode(responseData);
 
       if (response.statusCode == 200 && data['attachment'] != null) {
-        // Get the attachment ID from the response
-        final attachmentId = data['attachment']['attachment_id'];
-
         // Construct the image URL (use thumbnail or full-size view URL)
         final imageUrl = data['attachment']['thumbnail_url'] ??
             data['attachment']['view_url'];
@@ -362,14 +399,18 @@ class _ChatScreenState extends State<ChatScreen> {
       } else {
         // Show error if upload fails
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to upload image.')),
+          SnackBar(
+            content: Text(
+              _extractForumError(responseData, 'Failed to upload image.'),
+            ),
+          ),
         );
       }
     } catch (e) {
       // Catch and handle errors
       print('Error uploading image: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error uploading image.')),
+        SnackBar(content: Text('Error uploading image: $e')),
       );
     }
   }
