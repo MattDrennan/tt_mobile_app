@@ -33,6 +33,16 @@ class EventPage extends StatefulWidget {
 class _EventPageState extends State<EventPage> {
   List<dynamic> photoList = [];
 
+  DateTime? _parseApiDateTime(String? dateTime) {
+    if (dateTime == null || dateTime.isEmpty) return null;
+
+    try {
+      return DateFormat("yyyy-MM-dd HH:mm:ss").parse(dateTime);
+    } catch (_) {
+      return DateTime.tryParse(dateTime)?.toLocal();
+    }
+  }
+
   bool isEventClosed() {
     final closed = troopData?['closed'] ?? 0;
     return closed == 2 || closed == 3 || closed == 4;
@@ -40,14 +50,10 @@ class _EventPageState extends State<EventPage> {
 
   bool isEventInFuture() {
     final endDateStr = troopData?['dateEnd'];
-    if (endDateStr == null) return false;
+    final endDate = _parseApiDateTime(endDateStr);
+    if (endDate == null) return false;
 
-    try {
-      final endDate = DateFormat("yyyy-MM-dd HH:mm:ss").parse(endDateStr);
-      return DateTime.now().isBefore(endDate);
-    } catch (_) {
-      return false;
-    }
+    return DateTime.now().isBefore(endDate);
   }
 
   Future<void> fetchPhotos(int troopid) async {
@@ -132,14 +138,7 @@ class _EventPageState extends State<EventPage> {
 
   /// **Convert String Date to DateTime for Calendar**
   DateTime? parseDateTime(String? dateTime) {
-    if (dateTime == null || dateTime.isEmpty) return null;
-
-    try {
-      return DateFormat("yyyy-MM-dd HH:mm:ss").parse(dateTime);
-    } catch (e) {
-      print("Error parsing date: $e");
-      return null;
-    }
+    return _parseApiDateTime(dateTime);
   }
 
   /// **Function to Add Event to Calendar**
@@ -181,16 +180,12 @@ class _EventPageState extends State<EventPage> {
   }
 
   String formatDate(String? dateTime) {
-    if (dateTime == null || dateTime.isEmpty) {
+    final dt = _parseApiDateTime(dateTime);
+    if (dt == null) {
       return 'N/A';
     }
 
-    try {
-      DateTime dt = DateFormat("yyyy-MM-dd HH:mm:ss").parse(dateTime);
-      return DateFormat('MM/dd/yyyy h:mm a').format(dt);
-    } catch (e) {
-      return 'Invalid Date';
-    }
+    return DateFormat('MM/dd/yyyy h:mm a').format(dt);
   }
 
   Future<void> fetchEvent(int troopid) async {
