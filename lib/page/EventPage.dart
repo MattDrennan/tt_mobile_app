@@ -33,6 +33,12 @@ class EventPage extends StatefulWidget {
 class _EventPageState extends State<EventPage> {
   List<dynamic> photoList = [];
 
+  int? _asInt(dynamic value) {
+    if (value is int) return value;
+
+    return int.tryParse(value?.toString() ?? '');
+  }
+
   DateTime? _parseApiDateTime(String? dateTime) {
     if (dateTime == null || dateTime.isEmpty) return null;
 
@@ -789,13 +795,26 @@ class _EventPageState extends State<EventPage> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
+                  final threadId = _asInt(troopData?['thread_id']);
+                  final postId = _asInt(troopData?['post_id']);
+
+                  if (threadId == null || postId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'No discussion thread is available for this troop.'),
+                      ),
+                    );
+                    return;
+                  }
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => ChatScreen(
                         troopName: unescape.convert(troopData?['name'] ?? ''),
-                        threadId: troopData?['thread_id'] ?? '',
-                        postId: troopData?['post_id'] ?? '',
+                        threadId: threadId,
+                        postId: postId,
                       ),
                     ),
                   );

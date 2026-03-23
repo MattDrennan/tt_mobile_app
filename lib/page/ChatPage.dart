@@ -20,6 +20,14 @@ class _ChatPageState extends State<ChatPage> {
   List<dynamic> troops = [];
   final unescape = HtmlUnescape();
 
+  int? _asInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+
+    return int.tryParse(value?.toString() ?? '');
+  }
+
   Future<void> fetchTroops() async {
     final box = Hive.box('TTMobileApp');
     final userData = await json.decode(box.get('userData'));
@@ -80,14 +88,30 @@ class _ChatPageState extends State<ChatPage> {
                               width: double.infinity,
                               child: ElevatedButton(
                                 onPressed: () {
+                                  final threadId =
+                                      _asInt(troops[index]['thread_id']);
+                                  final postId =
+                                      _asInt(troops[index]['post_id']);
+
+                                  if (threadId == null || postId == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'No discussion thread is available for this troop.'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => ChatScreen(
-                                          troopName: unescape.convert(
-                                              troops[index]['name'] ?? ''),
-                                          threadId: troops[index]['thread_id'],
-                                          postId: troops[index]['post_id']),
+                                        troopName: unescape.convert(
+                                            troops[index]['name'] ?? ''),
+                                        threadId: threadId,
+                                        postId: postId,
+                                      ),
                                     ),
                                   );
                                 },
