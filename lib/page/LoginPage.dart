@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
@@ -30,6 +31,17 @@ class _LoginPageState extends State<LoginPage> {
   String get _mobileApiUrl =>
       dotenv.env['MOBILE_API_URL'] ??
       'https://www.fl501st.com/troop-tracker/mobile-api';
+
+  Uri get _resolvedMobileApiUri {
+    final uri = Uri.parse(_mobileApiUrl);
+
+    if (Platform.isAndroid &&
+        (uri.host == 'localhost' || uri.host == '127.0.0.1')) {
+      return uri.replace(host: '10.0.2.2');
+    }
+
+    return uri;
+  }
 
   String get _oauthClientId => dotenv.env['OAUTH_CLIENT_ID'] ?? '';
 
@@ -86,12 +98,35 @@ class _LoginPageState extends State<LoginPage> {
     return Uri.parse('$_forumBaseUrl$_tokenPath');
   }
 
+  dynamic _decodeJsonBody({
+    required String body,
+    required Uri uri,
+    required String operation,
+  }) {
+    final trimmed = body.trimLeft();
+
+    if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+      throw Exception(
+        '$operation returned HTML instead of JSON from $uri. Check the configured endpoint and OAuth client settings.',
+      );
+    }
+
+    try {
+      return json.decode(body);
+    } on FormatException {
+      throw Exception(
+        '$operation returned an invalid JSON response from $uri.',
+      );
+    }
+  }
+
   Future<String> _exchangeCodeForAccessToken({
     required String code,
     required String verifier,
   }) async {
+    final tokenUri = _buildTokenUri();
     final response = await http.post(
-      _buildTokenUri(),
+      tokenUri,
       headers: const {
         'Accept': 'application/json',
       },
@@ -104,7 +139,11 @@ class _LoginPageState extends State<LoginPage> {
       },
     );
 
-    final payload = json.decode(response.body);
+    final payload = _decodeJsonBody(
+      body: response.body,
+      uri: tokenUri,
+      operation: 'OAuth token exchange',
+    );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final message = payload is Map<String, dynamic>
@@ -125,15 +164,23 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _completeMobileLogin(String accessToken) async {
+    final mobileApiUri = _resolvedMobileApiUri;
     final response = await http.post(
-      Uri.parse(_mobileApiUrl),
+      mobileApiUri,
+      headers: const {
+        'Accept': 'application/json',
+      },
       body: {
         'action': 'login_with_forum',
         'access_token': accessToken,
       },
     );
 
-    final userData = json.decode(response.body);
+    final userData = _decodeJsonBody(
+      body: response.body,
+      uri: mobileApiUri,
+      operation: 'Troop Tracker mobile login',
+    );
 
     if (response.statusCode != 200 || userData?['success'] != true) {
       final message = userData is Map<String, dynamic>
