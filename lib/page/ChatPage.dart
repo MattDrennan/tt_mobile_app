@@ -24,8 +24,10 @@ class _ChatPageState extends State<ChatPage> {
     final box = Hive.box('TTMobileApp');
     final userData = await json.decode(box.get('userData'));
     final response = await http.get(
-      Uri.parse(
-          'https://www.fl501st.com/troop-tracker/mobileapi.php?user_id=${userData!['user']['user_id'].toString()}&action=troops'),
+      mobileApiUri({
+        'user_id': userData!['user']['user_id'].toString(),
+        'action': 'troops',
+      }),
       headers: {
         'API-Key': box.get('apiKey') ?? '',
       },

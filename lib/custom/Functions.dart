@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -13,6 +16,75 @@ import 'package:tt_mobile_app/page/LoginPage.dart';
 // Global
 types.User user = const types.User(id: 'user');
 
+Uri _buildConfiguredUri(String rawUrl,
+    [Map<String, dynamic>? queryParameters]) {
+  var uri = Uri.parse(rawUrl);
+
+  if (Platform.isAndroid &&
+      (uri.host == 'localhost' || uri.host == '127.0.0.1')) {
+    uri = uri.replace(host: '10.0.2.2');
+  }
+
+  if (queryParameters == null || queryParameters.isEmpty) {
+    return uri;
+  }
+
+  final mergedQuery = <String, String>{
+    ...uri.queryParameters,
+    ...queryParameters.map(
+      (key, value) => MapEntry(key, value.toString()),
+    ),
+  };
+
+  return uri.replace(queryParameters: mergedQuery);
+}
+
+Uri mobileApiUri([Map<String, dynamic>? queryParameters]) {
+  final rawUrl = dotenv.env['MOBILE_API_URL'] ??
+      'https://www.fl501st.com/troop-tracker/mobile-api';
+
+  return _buildConfiguredUri(rawUrl, queryParameters);
+}
+
+Uri forumMobileApiUri([Map<String, dynamic>? queryParameters]) {
+  final rawUrl = dotenv.env['FORUM_MOBILE_API_URL'];
+
+  if (rawUrl == null || rawUrl.isEmpty) {
+    throw StateError('FORUM_MOBILE_API_URL is not configured in .env');
+  }
+
+  return _buildConfiguredUri(rawUrl, queryParameters);
+}
+
+Uri forumApiUri(String path, [Map<String, dynamic>? queryParameters]) {
+  final rawBaseUrl = dotenv.env['FORUM_API_BASE_URL'];
+
+  if (rawBaseUrl == null || rawBaseUrl.isEmpty) {
+    throw StateError('FORUM_API_BASE_URL is not configured in .env');
+  }
+
+  final baseUri = _buildConfiguredUri(rawBaseUrl);
+  final normalizedBasePath = baseUri.path.replaceAll(RegExp(r'/+$'), '');
+  final normalizedChildPath = path.replaceFirst(RegExp(r'^/+'), '');
+
+  return _buildConfiguredUri(
+    baseUri
+        .replace(path: '$normalizedBasePath/$normalizedChildPath')
+        .toString(),
+    queryParameters,
+  );
+}
+
+Uri troopTrackerUploadUri([Map<String, dynamic>? queryParameters]) {
+  final rawUrl = dotenv.env['TROOP_TRACKER_UPLOAD_URL'];
+
+  if (rawUrl == null || rawUrl.isEmpty) {
+    throw StateError('TROOP_TRACKER_UPLOAD_URL is not configured in .env');
+  }
+
+  return _buildConfiguredUri(rawUrl, queryParameters);
+}
+
 Future<void> logout(BuildContext context) async {
   final box = Hive.box('TTMobileApp');
 
@@ -21,7 +93,7 @@ Future<void> logout(BuildContext context) async {
   );
 
   final response = await http.post(
-    Uri.parse('https://www.fl501st.com/troop-tracker/mobileapi.php'),
+    mobileApiUri(),
     body: {
       'action': 'logoutFCM',
       'apiKey': box.get('apiKey') ?? '',
@@ -54,8 +126,9 @@ Future<void> fetchSiteStatus(BuildContext context) async {
   try {
     final response = await http
         .get(
-          Uri.parse(
-              'https://www.fl501st.com/troop-tracker/mobileapi.php?action=is_closed'),
+          mobileApiUri({
+            'action': 'is_closed',
+          }),
         )
         .timeout(const Duration(seconds: 10)); // Set timeout
 
@@ -98,9 +171,10 @@ Future<void> fetchSiteStatus(BuildContext context) async {
 Future<bool> fetchUserStatus(BuildContext context,
     {required int trooperId}) async {
   try {
-    final uri = Uri.parse(
-      'https://www.fl501st.com/troop-tracker/mobileapi.php?action=user_status&trooperid=$trooperId',
-    );
+    final uri = mobileApiUri({
+      'action': 'user_status',
+      'trooperid': trooperId,
+    });
 
     final response = await http.get(uri).timeout(const Duration(seconds: 10));
 
@@ -170,7 +244,7 @@ Future<bool> getToken(String userId) async {
       print('FCM Token: $fcmToken');
 
       final response = await http.post(
-        Uri.parse('https://www.fl501st.com/troop-tracker/mobileapi.php'),
+        mobileApiUri(),
         body: {
           'action': 'saveFCM',
           'userid': userId,

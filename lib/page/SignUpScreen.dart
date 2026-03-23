@@ -4,6 +4,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:tt_mobile_app/custom/AppBar.dart';
+import 'package:tt_mobile_app/custom/Functions.dart';
 import 'package:tt_mobile_app/models/Costume.dart';
 import 'package:tt_mobile_app/page/EventPage.dart';
 
@@ -34,8 +35,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final userData = json.decode(rawData);
 
     final response = await http.get(
-      Uri.parse(
-          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=get_costumes_for_trooper&trooperid=${userData['user']['user_id'].toString()}&friendid=0'),
+      mobileApiUri({
+        'action': 'get_costumes_for_trooper',
+        'trooperid': userData['user']['user_id'].toString(),
+        'friendid': 0,
+      }),
       headers: {
         'API-Key': box.get('apiKey') ?? '',
       },
@@ -154,8 +158,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     );
                   } else {
                     final response = await http.get(
-                      Uri.parse(
-                          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=sign_up&trooperid=${userData['user']['user_id']}&addedby=0&troopid=${widget.troopid}&status=$selectedOption&costume=${selectedCostume?.id ?? 0}&backupcostume=${backupCostume?.id ?? 0}'),
+                      mobileApiUri({
+                        'action': 'sign_up',
+                        'trooperid': userData['user']['user_id'],
+                        'addedby': 0,
+                        'troopid': widget.troopid,
+                        'status': selectedOption ?? 0,
+                        'costume': selectedCostume?.id ?? 0,
+                        'backupcostume': backupCostume?.id ?? 0,
+                      }),
                       headers: {
                         'API-Key': box.get('apiKey') ?? '',
                       },

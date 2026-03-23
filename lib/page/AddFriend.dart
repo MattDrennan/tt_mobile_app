@@ -4,6 +4,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:tt_mobile_app/custom/AppBar.dart';
+import 'package:tt_mobile_app/custom/Functions.dart';
 import 'package:tt_mobile_app/models/Costume.dart';
 import 'package:tt_mobile_app/models/Trooper.dart';
 import 'package:tt_mobile_app/page/EventPage.dart';
@@ -34,8 +35,11 @@ class _AddFriendState extends State<AddFriend> {
     final box = Hive.box('TTMobileApp');
 
     final response = await http.get(
-      Uri.parse(
-          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=get_costumes_for_trooper&trooperid=0&friendid=$trooperId'),
+      mobileApiUri({
+        'action': 'get_costumes_for_trooper',
+        'trooperid': 0,
+        'friendid': trooperId,
+      }),
       headers: {
         'API-Key': box.get('apiKey') ?? '',
       },
@@ -59,8 +63,10 @@ class _AddFriendState extends State<AddFriend> {
     final box = Hive.box('TTMobileApp');
 
     final response = await http.get(
-      Uri.parse(
-          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=get_available_troopers_for_event&troopid=${widget.troopid}'),
+      mobileApiUri({
+        'action': 'get_available_troopers_for_event',
+        'troopid': widget.troopid,
+      }),
       headers: {
         'API-Key': box.get('apiKey') ?? '',
       },
@@ -210,8 +216,15 @@ class _AddFriendState extends State<AddFriend> {
                     );
                   } else {
                     final response = await http.get(
-                      Uri.parse(
-                          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=sign_up&trooperid=${selectedTrooper!.id}&addedby=${userData['user']['user_id'].toString()}&troopid=${widget.troopid}&status=$selectedOption&costume=${selectedCostume?.id ?? 0}&backupcostume=${backupCostume?.id ?? 0}'),
+                      mobileApiUri({
+                        'action': 'sign_up',
+                        'trooperid': selectedTrooper!.id,
+                        'addedby': userData['user']['user_id'].toString(),
+                        'troopid': widget.troopid,
+                        'status': selectedOption ?? 0,
+                        'costume': selectedCostume?.id ?? 0,
+                        'backupcostume': backupCostume?.id ?? 0,
+                      }),
                       headers: {
                         'API-Key': box.get('apiKey') ?? '',
                       },

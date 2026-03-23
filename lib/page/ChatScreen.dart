@@ -59,8 +59,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _fetchMessages() async {
     final response = await http.get(
-      Uri.parse(
-          '${dotenv.env['FORUM_URL'].toString()}api/threads/${widget.threadId}?with_posts=true&page=1'),
+      forumApiUri('threads/${widget.threadId}', {
+        'with_posts': true,
+        'page': 1,
+      }),
       headers: {
         'XF-Api-Key': dotenv.env['API_KEY'].toString(),
         'XF-Api-User': dotenv.env['API_USER'].toString(),
@@ -127,7 +129,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('${dotenv.env['FORUM_URL'].toString()}api/posts'),
+        forumApiUri('posts'),
         headers: {
           'XF-Api-Key': dotenv.env['API_KEY'].toString(),
           'XF-Api-User': userData!['user']['user_id'].toString(),
@@ -166,10 +168,11 @@ class _ChatScreenState extends State<ChatScreen> {
     final userData = json.decode(rawData);
 
     final response = await http.post(
-      Uri.parse('https://www.fl501st.com/boards/mobileapi.php'
-          '?action=block_user'
-          '&blocker_id=${userData['user']['user_id']}'
-          '&blocked_id=$userId'),
+      forumMobileApiUri({
+        'action': 'block_user',
+        'blocker_id': userData['user']['user_id'],
+        'blocked_id': userId,
+      }),
       headers: {
         'API-Key': box.get('apiKey') ?? '',
       },
@@ -206,11 +209,12 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     final response = await http.post(
-      Uri.parse('https://www.fl501st.com/boards/mobileapi.php'
-          '?action=report_post'
-          '&reporter_id=${userData['user']['user_id']}'
-          '&message=$reportReason'
-          '&post_id=$messageId'),
+      forumMobileApiUri({
+        'action': 'report_post',
+        'reporter_id': userData['user']['user_id'],
+        'message': reportReason,
+        'post_id': messageId,
+      }),
       headers: {
         'API-Key': box.get('apiKey') ?? '',
       },
@@ -234,8 +238,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final userData = await json.decode(box.get('userData'));
 
       final response = await http.post(
-        Uri.parse(
-            '${dotenv.env['FORUM_URL'].toString()}api/attachments/new-key'),
+        forumApiUri('attachments/new-key'),
         headers: {
           'XF-Api-Key': dotenv.env['API_KEY'].toString(),
           'XF-Api-User': userData!['user']['user_id'].toString(),
@@ -278,9 +281,7 @@ class _ChatScreenState extends State<ChatScreen> {
       // Create a multipart request for XenForo API
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse(
-          '${dotenv.env['FORUM_URL'].toString()}api/attachments',
-        ),
+        forumApiUri('attachments'),
       );
 
       // Add API headers
@@ -334,7 +335,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
         try {
           final responseImagePost = await http.post(
-            Uri.parse('${dotenv.env['FORUM_URL'].toString()}api/posts'),
+            forumApiUri('posts'),
             headers: {
               'XF-Api-Key': dotenv.env['API_KEY'].toString(),
               'XF-Api-User': userData!['user']['user_id'].toString(),

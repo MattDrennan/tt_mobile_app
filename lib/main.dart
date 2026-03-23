@@ -65,8 +65,10 @@ Future<bool> fetchConfirmTroops(int trooperid) async {
     final box = Hive.box('TTMobileApp');
 
     final response = await http.get(
-      Uri.parse(
-          'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=$trooperid&action=get_confirm_events_trooper'),
+      mobileApiUri({
+        'trooperid': trooperid,
+        'action': 'get_confirm_events_trooper',
+      }),
       headers: {
         'API-Key': box.get('apiKey') ?? '',
       },

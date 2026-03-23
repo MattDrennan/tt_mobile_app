@@ -8,6 +8,7 @@ import 'package:html_unescape/html_unescape.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:tt_mobile_app/custom/AppBar.dart';
+import 'package:tt_mobile_app/custom/Functions.dart';
 import 'package:tt_mobile_app/custom/LimitRow.dart';
 import 'package:tt_mobile_app/page/AddFriend.dart';
 import 'package:tt_mobile_app/page/SignUpScreen.dart';
@@ -53,8 +54,10 @@ class _EventPageState extends State<EventPage> {
     try {
       final box = Hive.box('TTMobileApp');
       final response = await http.get(
-        Uri.parse(
-            'https://www.fl501st.com/troop-tracker/mobileapi.php?action=get_photos_by_event&troopid=$troopid'),
+        mobileApiUri({
+          'action': 'get_photos_by_event',
+          'troopid': troopid,
+        }),
         headers: {
           'API-Key': box.get('apiKey') ?? '',
         },
@@ -84,8 +87,7 @@ class _EventPageState extends State<EventPage> {
 
     final int trooperId = int.parse(userData['user']['user_id'].toString());
 
-    final uri = Uri.parse(
-        'https://www.fl501st.com/troop-tracker/script/php/upload.php?client=mobile');
+    final uri = troopTrackerUploadUri();
 
     final request = http.MultipartRequest('POST', uri)
       ..headers['API-Key'] = apiKey
@@ -197,8 +199,10 @@ class _EventPageState extends State<EventPage> {
       final box = Hive.box('TTMobileApp');
 
       final response = await http.get(
-        Uri.parse(
-            'https://www.fl501st.com/troop-tracker/mobileapi.php?troopid=$troopid&action=event'),
+        mobileApiUri({
+          'troopid': troopid,
+          'action': 'event',
+        }),
         headers: {
           'API-Key': box.get('apiKey') ?? '',
         },
@@ -231,8 +235,10 @@ class _EventPageState extends State<EventPage> {
       final box = Hive.box('TTMobileApp');
 
       final response = await http.get(
-        Uri.parse(
-            'https://www.fl501st.com/troop-tracker/mobileapi.php?troopid=$troopid&action=get_roster_for_event'),
+        mobileApiUri({
+          'troopid': troopid,
+          'action': 'get_roster_for_event',
+        }),
         headers: {
           'API-Key': box.get('apiKey') ?? '',
         },
@@ -243,7 +249,6 @@ class _EventPageState extends State<EventPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          fetchRoster(widget.troopid);
           rosterData = data;
         });
       } else {
@@ -283,8 +288,11 @@ class _EventPageState extends State<EventPage> {
       final box = Hive.box('TTMobileApp');
 
       final response = await http.get(
-        Uri.parse(
-            'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=$trooperid&troopid=$troopid&action=trooper_in_event'),
+        mobileApiUri({
+          'trooperid': trooperid,
+          'troopid': troopid,
+          'action': 'trooper_in_event',
+        }),
         headers: {
           'API-Key': box.get('apiKey') ?? '',
         },
@@ -311,8 +319,11 @@ class _EventPageState extends State<EventPage> {
 
     try {
       final response = await http.get(
-        Uri.parse(
-            'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=$userId&troopid=$troopid&action=cancel_troop'),
+        mobileApiUri({
+          'trooperid': userId,
+          'troopid': troopid,
+          'action': 'cancel_troop',
+        }),
         headers: {
           'API-Key': box.get('apiKey') ?? '',
         },
@@ -531,7 +542,7 @@ class _EventPageState extends State<EventPage> {
                             return DataRow(
                               cells: [
                                 DataCell(Text(
-                                  member['status_formatted'].toString() ??
+                                  member['status_formatted']?.toString() ??
                                       'N/A',
                                   style: TextStyle(
                                     color: isCanceled
@@ -547,7 +558,7 @@ class _EventPageState extends State<EventPage> {
                                   ),
                                 )),
                                 DataCell(Text(
-                                  member['trooper_name'].toString() ?? 'N/A',
+                                  member['trooper_name']?.toString() ?? 'N/A',
                                   style: TextStyle(
                                     color: isCanceled
                                         ? Colors.red
@@ -562,7 +573,7 @@ class _EventPageState extends State<EventPage> {
                                   ),
                                 )),
                                 DataCell(Text(
-                                  member['tkid_formatted'].toString() ?? 'N/A',
+                                  member['tkid_formatted']?.toString() ?? 'N/A',
                                   style: TextStyle(
                                     color: isCanceled
                                         ? Colors.red
@@ -577,7 +588,7 @@ class _EventPageState extends State<EventPage> {
                                   ),
                                 )),
                                 DataCell(Text(
-                                  member['costume_name'].toString() ?? 'N/A',
+                                  member['costume_name']?.toString() ?? 'N/A',
                                   style: TextStyle(
                                     color: isCanceled
                                         ? Colors.red
@@ -609,7 +620,7 @@ class _EventPageState extends State<EventPage> {
                                   ),
                                 )),
                                 DataCell(Text(
-                                  formatDate(member['signuptime']) ?? 'N/A',
+                                  formatDate(member['signuptime']),
                                   style: TextStyle(
                                     color: isCanceled
                                         ? Colors.red

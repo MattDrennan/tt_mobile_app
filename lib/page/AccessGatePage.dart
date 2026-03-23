@@ -28,8 +28,10 @@ class _AccessGatePageState extends State<AccessGatePage> {
   Future<void> _checkAndRoute() async {
     setState(() => _checking = true);
     try {
-      final uri = Uri.parse(
-          'https://www.fl501st.com/troop-tracker/mobileapi.php?action=user_status&trooperid=${widget.trooperId}');
+      final uri = mobileApiUri({
+        'action': 'user_status',
+        'trooperid': widget.trooperId,
+      });
       final resp = await http.get(uri).timeout(const Duration(seconds: 10));
 
       if (!mounted) return;

@@ -43,8 +43,10 @@ class _TroopPageState extends State<TroopPage> {
       final box = Hive.box('TTMobileApp');
 
       final response = await http.get(
-        Uri.parse(
-            'https://www.fl501st.com/troop-tracker/mobileapi.php?squad=$squad&action=get_troops_by_squad'),
+        mobileApiUri({
+          'squad': squad,
+          'action': 'get_troops_by_squad',
+        }),
         headers: {
           'API-Key': box.get('apiKey') ?? '',
         },

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:tt_mobile_app/main.dart';
+import 'package:tt_mobile_app/custom/Functions.dart';
 import 'package:tt_mobile_app/page/MyHomePage.dart';
 
 class ClosedPage extends StatelessWidget {
@@ -14,8 +14,9 @@ class ClosedPage extends StatelessWidget {
     try {
       final response = await http
           .get(
-            Uri.parse(
-                'https://www.fl501st.com/troop-tracker/mobileapi.php?action=is_closed'),
+            mobileApiUri({
+              'action': 'is_closed',
+            }),
           )
           .timeout(const Duration(seconds: 10));
 
