@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/custom/Functions.dart';
 import 'package:tt_mobile_app/main.dart';
