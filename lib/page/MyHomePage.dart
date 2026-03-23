@@ -21,19 +21,34 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late Future<bool> confirmTroopsFuture;
 
+  int? get _currentTrooperId => int.tryParse(user.id);
+
   @override
   void initState() {
     super.initState();
-    confirmTroopsFuture = fetchConfirmTroops(int.parse(user.id));
+    confirmTroopsFuture = _buildConfirmTroopsFuture();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       fetchSiteStatus(context);
-      fetchUserStatus(context, trooperId: int.parse(user.id));
+
+      final trooperId = _currentTrooperId;
+      if (trooperId != null) {
+        fetchUserStatus(context, trooperId: trooperId);
+      }
     });
+  }
+
+  Future<bool> _buildConfirmTroopsFuture() {
+    final trooperId = _currentTrooperId;
+    if (trooperId == null) {
+      return Future.value(false);
+    }
+
+    return fetchConfirmTroops(trooperId);
   }
 
   void refreshConfirmTroops() {
     setState(() {
-      confirmTroopsFuture = fetchConfirmTroops(int.parse(user.id));
+      confirmTroopsFuture = _buildConfirmTroopsFuture();
     });
   }
 
@@ -114,11 +129,16 @@ class _MyHomePageState extends State<MyHomePage> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
+                            final trooperId = _currentTrooperId;
+                            if (trooperId == null) {
+                              return;
+                            }
+
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ConfirmPage(
-                                  trooperId: int.parse(user.id),
+                                  trooperId: trooperId,
                                 ),
                               ),
                             ).then((_) =>

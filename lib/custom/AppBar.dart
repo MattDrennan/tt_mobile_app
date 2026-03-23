@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tt_mobile_app/page/MyHomePage.dart';
+import 'package:tt_mobile_app/main.dart';
 
 AppBar buildAppBar(BuildContext context, String title) {
   return AppBar(
@@ -11,9 +11,7 @@ AppBar buildAppBar(BuildContext context, String title) {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
-              builder: (context) => MyHomePage(
-                title: 'Troop Tracker',
-              ), // Replace with your home screen widget
+              builder: (context) => const AuthCheck(),
             ),
             (route) => false, // Remove all previous routes
           );

@@ -107,6 +107,7 @@ Future<void> logout(BuildContext context) async {
   if (response.statusCode == 200) {
     print('Success');
     await box.clear(); // Clear all data, ensuring complete logout
+    user = const types.User(id: 'user');
   } else {
     print('Fail');
     ScaffoldMessenger.of(context).showSnackBar(
