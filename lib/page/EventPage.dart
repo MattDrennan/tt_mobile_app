@@ -145,6 +145,77 @@ class _EventPageState extends State<EventPage> {
   List<dynamic> get _eventShifts =>
       List<dynamic>.from(troopData?['shifts'] ?? []);
 
+  int? selectedRosterShiftId;
+
+  List<dynamic> get _filteredRoster {
+    final roster = rosterData ?? [];
+    if (_eventShifts.length <= 1 || selectedRosterShiftId == null)
+      return roster;
+    return roster
+        .where((m) => (m['shift_id'] as num?)?.toInt() == selectedRosterShiftId)
+        .toList();
+  }
+
+  Widget _buildRosterTable(List<dynamic> rows) {
+    return Card(
+      color: Colors.grey[900],
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            headingRowColor:
+                WidgetStateProperty.resolveWith((states) => Colors.grey[800]),
+            columns: const [
+              DataColumn(label: Text('Status')),
+              DataColumn(label: Text('Trooper Name')),
+              DataColumn(label: Text('TKID')),
+              DataColumn(label: Text('Costume')),
+              DataColumn(label: Text('Backup Costume')),
+              DataColumn(label: Text('Signup Time')),
+            ],
+            rows: rows.map((member) {
+              final String status =
+                  member['status_formatted']?.toLowerCase() ?? '';
+              final bool isCanceled = status == 'canceled';
+              final bool isTentative = status == 'tentative';
+              final bool isStandBy = status == 'stand by';
+
+              TextStyle cellStyle(TextStyle? base) => TextStyle(
+                    color: isCanceled
+                        ? Colors.red
+                        : isTentative
+                            ? Colors.purple
+                            : isStandBy
+                                ? Colors.orange
+                                : null,
+                    decoration: isCanceled ? TextDecoration.lineThrough : null,
+                  );
+
+              return DataRow(cells: [
+                DataCell(Text(member['status_formatted']?.toString() ?? 'N/A',
+                    style: cellStyle(null))),
+                DataCell(Text(member['trooper_name']?.toString() ?? 'N/A',
+                    style: cellStyle(null))),
+                DataCell(Text(member['tkid_formatted']?.toString() ?? 'N/A',
+                    style: cellStyle(null))),
+                DataCell(Text(member['costume_name']?.toString() ?? 'N/A',
+                    style: cellStyle(null))),
+                DataCell(Text(
+                    member['backup_costume_name']?.toString() ?? 'N/A',
+                    style: cellStyle(null))),
+                DataCell(Text(formatDate(member['signuptime']),
+                    style: cellStyle(null))),
+              ]);
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
   final unescape = HtmlUnescape();
 
   /// **Convert String Date to DateTime for Calendar**
@@ -218,8 +289,12 @@ class _EventPageState extends State<EventPage> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        final shifts = List<dynamic>.from(data['shifts'] ?? []);
         setState(() {
           troopData = data;
+          if (shifts.isNotEmpty && selectedRosterShiftId == null) {
+            selectedRosterShiftId = (shifts.first['id'] as num).toInt();
+          }
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -573,145 +648,35 @@ class _EventPageState extends State<EventPage> {
             ],
 
             // Roster Section
-            if (rosterData != null && rosterData!.isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Divider(),
-                  Card(
-                    color: Colors.grey[900],
-                    elevation: 2,
-                    margin: const EdgeInsets.symmetric(vertical: 10),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          headingRowColor: WidgetStateProperty.resolveWith(
-                              (states) => Colors.grey[800]),
-                          columns: const [
-                            DataColumn(label: Text('Status')),
-                            DataColumn(label: Text('Trooper Name')),
-                            DataColumn(label: Text('TKID')),
-                            DataColumn(label: Text('Costume')),
-                            DataColumn(label: Text('Backup Costume')),
-                            DataColumn(label: Text('Signup Time')),
-                          ],
-                          rows: rosterData!.map((member) {
-                            final String status =
-                                member['status_formatted']?.toLowerCase() ?? '';
-                            final bool isCanceled = status == 'canceled';
-                            final bool isTentative = status == 'tentative';
-                            final bool isStandBy = status == 'stand by';
-
-                            return DataRow(
-                              cells: [
-                                DataCell(Text(
-                                  member['status_formatted']?.toString() ??
-                                      'N/A',
-                                  style: TextStyle(
-                                    color: isCanceled
-                                        ? Colors.red
-                                        : isTentative
-                                            ? Colors.purple
-                                            : isStandBy
-                                                ? Colors.orange
-                                                : null,
-                                    decoration: isCanceled
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                )),
-                                DataCell(Text(
-                                  member['trooper_name']?.toString() ?? 'N/A',
-                                  style: TextStyle(
-                                    color: isCanceled
-                                        ? Colors.red
-                                        : isTentative
-                                            ? Colors.purple
-                                            : isStandBy
-                                                ? Colors.orange
-                                                : null,
-                                    decoration: isCanceled
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                )),
-                                DataCell(Text(
-                                  member['tkid_formatted']?.toString() ?? 'N/A',
-                                  style: TextStyle(
-                                    color: isCanceled
-                                        ? Colors.red
-                                        : isTentative
-                                            ? Colors.purple
-                                            : isStandBy
-                                                ? Colors.orange
-                                                : null,
-                                    decoration: isCanceled
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                )),
-                                DataCell(Text(
-                                  member['costume_name']?.toString() ?? 'N/A',
-                                  style: TextStyle(
-                                    color: isCanceled
-                                        ? Colors.red
-                                        : isTentative
-                                            ? Colors.purple
-                                            : isStandBy
-                                                ? Colors.orange
-                                                : null,
-                                    decoration: isCanceled
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                )),
-                                DataCell(Text(
-                                  member['backup_costume_name'] != null
-                                      ? member['backup_costume_name'].toString()
-                                      : 'N/A',
-                                  style: TextStyle(
-                                    color: isCanceled
-                                        ? Colors.red
-                                        : isTentative
-                                            ? Colors.purple
-                                            : isStandBy
-                                                ? Colors.orange
-                                                : null,
-                                    decoration: isCanceled
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                )),
-                                DataCell(Text(
-                                  formatDate(member['signuptime']),
-                                  style: TextStyle(
-                                    color: isCanceled
-                                        ? Colors.red
-                                        : isTentative
-                                            ? Colors.purple
-                                            : isStandBy
-                                                ? Colors.orange
-                                                : null,
-                                    decoration: isCanceled
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                )),
-                              ],
-                            );
-                          }).toList(),
+            if (rosterData != null && rosterData!.isNotEmpty) ...[
+              const Divider(),
+              const SizedBox(height: 6),
+              // Shift filter chips — only shown for multi-shift events
+              if (_eventShifts.length > 1)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _eventShifts.map((shift) {
+                      final id = (shift['id'] as num).toInt();
+                      final selected = selectedRosterShiftId == id;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: FilterChip(
+                          label: Text(shift['display']?.toString() ?? 'Shift'),
+                          selected: selected,
+                          onSelected: (_) =>
+                              setState(() => selectedRosterShiftId = id),
                         ),
-                      ),
-                    ),
+                      );
+                    }).toList(),
                   ),
-                ],
-              )
-            else ...[
+                ),
+              const SizedBox(height: 6),
+              _buildRosterTable(_filteredRoster),
+            ] else ...[
               const Divider(),
               const SizedBox(height: 10),
-              Text("No roster data available."),
+              const Text("No roster data available."),
             ],
             if (photoList.isNotEmpty) ...[
               const Divider(),
@@ -775,7 +740,7 @@ class _EventPageState extends State<EventPage> {
               if (_eventShifts.length > 1) ...[
                 // Multi-shift event: manage each shift individually
                 const Text(
-                  "My Shifts",
+                  "Shifts",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Divider(),
@@ -841,8 +806,7 @@ class _EventPageState extends State<EventPage> {
                             builder: (context) => AddFriend(
                               troopid: widget.troopid,
                               limitedEvent: troopData?['limitedEvent'] ?? 0,
-                              allowTentative:
-                                  troopData?['allowTentative'] ?? 0,
+                              allowTentative: troopData?['allowTentative'] ?? 0,
                               shifts: _eventShifts,
                             ),
                           ),
@@ -864,8 +828,7 @@ class _EventPageState extends State<EventPage> {
                               MaterialPageRoute(
                                 builder: (context) => SignUpScreen(
                                   troopid: widget.troopid,
-                                  limitedEvent:
-                                      troopData?['limitedEvent'] ?? 0,
+                                  limitedEvent: troopData?['limitedEvent'] ?? 0,
                                   allowTentative:
                                       troopData?['allowTentative'] ?? 0,
                                   shifts: _eventShifts,
