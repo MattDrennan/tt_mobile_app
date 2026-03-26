@@ -146,6 +146,7 @@ class _EventPageState extends State<EventPage> {
       List<dynamic>.from(troopData?['shifts'] ?? []);
 
   int? selectedRosterShiftId;
+  List<dynamic> myFriends = [];
 
   List<dynamic> get _filteredRoster {
     final roster = rosterData ?? [];
@@ -469,12 +470,71 @@ class _EventPageState extends State<EventPage> {
     );
   }
 
+  Future<void> fetchMyFriends() async {
+    final box = Hive.box('TTMobileApp');
+    final userData = json.decode(box.get('userData'));
+    final int userId = int.parse(userData['user']['user_id'].toString());
+
+    try {
+      final response = await http.get(
+        mobileApiUri({
+          'action': 'get_friends_for_event',
+          'trooperid': userId,
+          'troopid': widget.troopid,
+        }),
+        headers: {'API-Key': box.get('apiKey') ?? ''},
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        setState(() {
+          myFriends = json.decode(response.body) as List<dynamic>;
+        });
+      }
+    } catch (e) {
+      debugPrint('fetchMyFriends error: $e');
+    }
+  }
+
+  Future<void> _cancelFriendShift(int friendTrooperId, int shiftId) async {
+    final box = Hive.box('TTMobileApp');
+    final userData = json.decode(box.get('userData'));
+    final int userId = int.parse(userData['user']['user_id'].toString());
+
+    final response = await http.get(
+      mobileApiUri({
+        'action': 'cancel_shift',
+        'trooperid': userId,
+        'shiftid': shiftId,
+        'friendtrooperid': friendTrooperId,
+      }),
+      headers: {'API-Key': box.get('apiKey') ?? ''},
+    );
+
+    if (!mounted) return;
+
+    final data = json.decode(response.body);
+    if (data['success'] == true) {
+      await fetchMyFriends();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Friend signup cancelled.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Something went wrong.')),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     fetchEvent(widget.troopid);
     fetchRoster(widget.troopid);
     checkInRoster();
+    fetchMyFriends();
     fetchPhotos(widget.troopid);
   }
 
@@ -875,6 +935,63 @@ class _EventPageState extends State<EventPage> {
                         ],
                       ),
               ],
+            ],
+            // My Friends section
+            if (myFriends.isNotEmpty) ...[
+              const Divider(),
+              const SizedBox(height: 6),
+              const Text(
+                'My Friends',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              ...myFriends.map((friend) {
+                final int friendTrooperId =
+                    (friend['trooper_id'] as num).toInt();
+                final int shiftId = (friend['shift_id'] as num).toInt();
+                final String name =
+                    friend['trooper_name']?.toString() ?? 'Unknown';
+                final String status =
+                    friend['status_formatted']?.toString() ?? '';
+                final String shiftDisplay =
+                    friend['shift_display']?.toString() ?? '';
+                final bool hasMultiple = _eventShifts.length > 1;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name,
+                                style: const TextStyle(fontSize: 14)),
+                            if (hasMultiple)
+                              Text(shiftDisplay,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white54)),
+                          ],
+                        ),
+                      ),
+                      Text(status,
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.green)),
+                      if (!isEventClosed()) ...[
+                        const SizedBox(width: 8),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.red),
+                          onPressed: () =>
+                              _cancelFriendShift(friendTrooperId, shiftId),
+                          child: const Text('Cancel'),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
             ],
             const Divider(),
             const SizedBox(height: 10),
