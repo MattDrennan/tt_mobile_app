@@ -139,6 +139,11 @@ class _EventPageState extends State<EventPage> {
   Map<String, dynamic>? troopData;
   List<dynamic>? rosterData;
   bool isInRoster = false;
+  // shiftId -> status_formatted for the current trooper's signups
+  Map<int, String> myShiftStatuses = {};
+
+  List<dynamic> get _eventShifts =>
+      List<dynamic>.from(troopData?['shifts'] ?? []);
 
   final unescape = HtmlUnescape();
 
@@ -271,21 +276,24 @@ class _EventPageState extends State<EventPage> {
     final rawData = box.get('userData');
     final userData = json.decode(rawData);
 
-    // Parse user_id as an int
     final int userId = int.parse(userData['user']['user_id'].toString());
 
-    bool result = await fetchInRoster(userId, widget.troopid);
+    final result = await fetchInRoster(userId, widget.troopid);
 
     if (mounted) {
       setState(() {
-        isInRoster = result;
+        isInRoster = result['inEvent'] == true;
+        final shifts = result['my_shifts'] as List? ?? [];
+        myShiftStatuses = {
+          for (final s in shifts)
+            (s['shift_id'] as num).toInt(): s['status_formatted'] as String,
+        };
       });
     }
   }
 
-  Future<bool> fetchInRoster(int trooperid, int troopid) async {
+  Future<Map<String, dynamic>> fetchInRoster(int trooperid, int troopid) async {
     try {
-      // Open the Hive box
       final box = Hive.box('TTMobileApp');
 
       final response = await http.get(
@@ -300,13 +308,41 @@ class _EventPageState extends State<EventPage> {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['inEvent'] == true;
-      } else {
-        return false;
+        return json.decode(response.body) as Map<String, dynamic>;
       }
-    } catch (e) {
-      return false;
+    } catch (_) {}
+    return {'inEvent': false, 'my_shifts': []};
+  }
+
+  Future<void> _cancelShift(int shiftId) async {
+    final box = Hive.box('TTMobileApp');
+    final userData = json.decode(box.get('userData'));
+    final int userId = int.parse(userData['user']['user_id'].toString());
+
+    final response = await http.get(
+      mobileApiUri({
+        'action': 'cancel_shift',
+        'trooperid': userId,
+        'shiftid': shiftId,
+      }),
+      headers: {'API-Key': box.get('apiKey') ?? ''},
+    );
+
+    if (!mounted) return;
+
+    final data = json.decode(response.body);
+    if (data['success'] == true) {
+      setState(() {
+        myShiftStatuses.remove(shiftId);
+        isInRoster = myShiftStatuses.isNotEmpty;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Shift cancelled.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Something went wrong.')),
+      );
     }
   }
 
@@ -390,35 +426,36 @@ class _EventPageState extends State<EventPage> {
             ),
             LocationWidget(location: troopData?['location']),
             const Divider(),
-            InfoRow(
-              label: "Start",
-              value: formatDate(troopData?['dateStart'] ?? 'N/A'),
-            ),
-            InfoRow(
-              label: "End",
-              value: formatDate(troopData?['dateEnd'] ?? 'N/A'),
-            ),
+            if (_eventShifts.isEmpty) ...[
+              InfoRow(
+                label: "Start",
+                value: formatDate(troopData?['dateStart'] ?? 'N/A'),
+              ),
+              InfoRow(
+                label: "End",
+                value: formatDate(troopData?['dateEnd'] ?? 'N/A'),
+              ),
+            ] else ...[
+              const Text(
+                "Shifts",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              ..._eventShifts.map((shift) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2.0),
+                    child: Text(
+                      shift['display']?.toString() ?? '',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  )),
+              const Divider(),
+            ],
             InfoRow(
               label: "Website",
               value: troopData?['website']?.isEmpty ?? true
                   ? 'N/A'
                   : troopData?['website'],
             ),
-            if ((troopData?['shifts'] as List?)?.isNotEmpty ?? false) ...[
-              const SizedBox(height: 10),
-              const Text(
-                "Shifts",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const Divider(),
-              ...((troopData!['shifts'] as List).map((shift) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2.0),
-                    child: Text(
-                      shift['display']?.toString() ?? '',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ))),
-            ],
             const SizedBox(height: 10),
 
             // Attendance Details
@@ -735,65 +772,146 @@ class _EventPageState extends State<EventPage> {
             const Divider(),
             const SizedBox(height: 10),
             if (!isEventClosed()) ...[
-              !isInRoster
-                  ? SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SignUpScreen(
-                                troopid: widget.troopid,
-                                limitedEvent: troopData?['limitedEvent'] ?? 0,
-                                allowTentative:
-                                    troopData?['allowTentative'] ?? 0,
-                                shifts: List<dynamic>.from(
-                                    troopData?['shifts'] ?? []),
-                              ),
-                            ),
-                          );
-                        },
-                        child: Text('Go To Sign Up'),
-                      ),
-                    )
-                  : Column(
+              if (_eventShifts.length > 1) ...[
+                // Multi-shift event: manage each shift individually
+                const Text(
+                  "My Shifts",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const Divider(),
+                ..._eventShifts.map((shift) {
+                  final shiftId = (shift['id'] as num).toInt();
+                  final status = myShiftStatuses[shiftId];
+                  final isSignedUp = status != null;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6.0),
+                    child: Row(
                       children: [
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors
-                                  .red, // Set button color to red for "Cancel"
-                            ),
-                            onPressed: () => _cancelSignup(),
-                            child: Text('Cancel Signup'),
+                        Expanded(
+                          child: Text(
+                            shift['display']?.toString() ?? '',
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
+                        if (isSignedUp) ...[
+                          Text(
+                            status,
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.green),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                                foregroundColor: Colors.red),
+                            onPressed: () => _cancelShift(shiftId),
+                            child: const Text('Cancel'),
+                          ),
+                        ] else
+                          ElevatedButton(
                             onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => AddFriend(
+                                  builder: (context) => SignUpScreen(
                                     troopid: widget.troopid,
                                     limitedEvent:
                                         troopData?['limitedEvent'] ?? 0,
                                     allowTentative:
                                         troopData?['allowTentative'] ?? 0,
+                                    shifts: [shift],
                                   ),
                                 ),
                               );
                             },
-                            icon: Icon(Icons.person_add),
-                            label: Text('Add Friend'),
+                            child: const Text('Sign Up'),
                           ),
-                        ),
                       ],
                     ),
+                  );
+                }),
+                const SizedBox(height: 8),
+                if (isInRoster)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddFriend(
+                              troopid: widget.troopid,
+                              limitedEvent: troopData?['limitedEvent'] ?? 0,
+                              allowTentative:
+                                  troopData?['allowTentative'] ?? 0,
+                              shifts: _eventShifts,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.person_add),
+                      label: const Text('Add Friend'),
+                    ),
+                  ),
+              ] else ...[
+                // Single-shift or no-shift event: original behavior
+                !isInRoster
+                    ? SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SignUpScreen(
+                                  troopid: widget.troopid,
+                                  limitedEvent:
+                                      troopData?['limitedEvent'] ?? 0,
+                                  allowTentative:
+                                      troopData?['allowTentative'] ?? 0,
+                                  shifts: _eventShifts,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('Go To Sign Up'),
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red),
+                              onPressed: () => _cancelSignup(),
+                              child: const Text('Cancel Signup'),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => AddFriend(
+                                      troopid: widget.troopid,
+                                      limitedEvent:
+                                          troopData?['limitedEvent'] ?? 0,
+                                      allowTentative:
+                                          troopData?['allowTentative'] ?? 0,
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.person_add),
+                              label: const Text('Add Friend'),
+                            ),
+                          ),
+                        ],
+                      ),
+              ],
             ],
             const Divider(),
             const SizedBox(height: 10),
