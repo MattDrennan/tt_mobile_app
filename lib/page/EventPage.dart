@@ -859,8 +859,8 @@ class _EventPageState extends State<EventPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
+                      onPressed: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => AddFriend(
@@ -871,6 +871,7 @@ class _EventPageState extends State<EventPage> {
                             ),
                           ),
                         );
+                        if (mounted) fetchMyFriends();
                       },
                       icon: const Icon(Icons.person_add),
                       label: const Text('Add Friend'),
@@ -914,8 +915,8 @@ class _EventPageState extends State<EventPage> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
+                              onPressed: () async {
+                                await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => AddFriend(
@@ -924,9 +925,11 @@ class _EventPageState extends State<EventPage> {
                                           troopData?['limitedEvent'] ?? 0,
                                       allowTentative:
                                           troopData?['allowTentative'] ?? 0,
+                                      shifts: _eventShifts,
                                     ),
                                   ),
                                 );
+                                if (mounted) fetchMyFriends();
                               },
                               icon: const Icon(Icons.person_add),
                               label: const Text('Add Friend'),

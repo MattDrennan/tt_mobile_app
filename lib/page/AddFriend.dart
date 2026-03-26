@@ -7,7 +7,6 @@ import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/custom/Functions.dart';
 import 'package:tt_mobile_app/models/Costume.dart';
 import 'package:tt_mobile_app/models/Trooper.dart';
-import 'package:tt_mobile_app/page/EventPage.dart';
 
 class AddFriend extends StatefulWidget {
   final int troopid;
@@ -289,15 +288,15 @@ class _AddFriendState extends State<AddFriend> {
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['success_message'] ?? 'Unknown')),
+        SnackBar(content: Text(data['success_message'] ?? 'Added!')),
       );
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EventPage(troopid: widget.troopid),
-        ),
-        (route) => false,
-      );
+      // Reset form so the same friend can be added to another shift,
+      // or a different friend can be added without navigating away.
+      setState(() {
+        selectedTrooper = null;
+        selectedCostume = null;
+        backupCostume = null;
+      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to sign up!')),
