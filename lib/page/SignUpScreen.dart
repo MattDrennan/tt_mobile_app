@@ -12,27 +12,36 @@ class SignUpScreen extends StatefulWidget {
   final int troopid;
   final int limitedEvent;
   final int allowTentative;
+  final List<dynamic> shifts;
 
-  const SignUpScreen(
-      {super.key,
-      required this.troopid,
-      required this.limitedEvent,
-      required this.allowTentative});
+  const SignUpScreen({
+    super.key,
+    required this.troopid,
+    required this.limitedEvent,
+    required this.allowTentative,
+    this.shifts = const [],
+  });
 
   @override
-  _SignUpScreenState createState() => _SignUpScreenState();
+  State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
   String? selectedStatus;
   Costume? selectedCostume;
   Costume? backupCostume;
+  int? selectedShiftId;
 
   @override
   void initState() {
     super.initState();
     selectedStatus = widget.limitedEvent == 1 ? 'pending' : 'going';
+    if (widget.shifts.isNotEmpty) {
+      selectedShiftId = widget.shifts.first['id'] as int?;
+    }
   }
+
+  bool get hasMultipleShifts => widget.shifts.length > 1;
 
   /// Fetch costumes dynamically for the dropdown
   Future<List<Costume>> fetchCostumes(String? filter) async {
@@ -66,10 +75,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final box = Hive.box('TTMobileApp');
-    final rawData = box.get('userData');
-    final userData = json.decode(rawData);
-
     return Scaffold(
       appBar: buildAppBar(context, 'Sign Up'),
       body: Padding(
@@ -77,6 +82,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (hasMultipleShifts) ...[
+              const Text('Shift:', style: TextStyle(fontSize: 16)),
+              DropdownButton<int>(
+                value: selectedShiftId,
+                items: widget.shifts.map<DropdownMenuItem<int>>((shift) {
+                  return DropdownMenuItem<int>(
+                    value: shift['id'] as int,
+                    child: Text(shift['display']?.toString() ?? 'Shift ${shift['id']}'),
+                  );
+                }).toList(),
+                onChanged: (int? newValue) {
+                  setState(() {
+                    selectedShiftId = newValue;
+                  });
+                },
+                isExpanded: true,
+                underline: Container(
+                  height: 2,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             DropdownButton<String>(
               value: selectedStatus,
               items: [
@@ -154,7 +182,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () async {
+                onPressed: () {
                   if (selectedStatus == null || selectedCostume == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -162,50 +190,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             Text('Please select a costume before signing up!'),
                       ),
                     );
-                  } else {
-                    final response = await http.get(
-                      mobileApiUri({
-                        'action': 'sign_up',
-                        'trooperid': userData['user']['user_id'],
-                        'addedby': 0,
-                        'troopid': widget.troopid,
-                        'status': selectedStatus,
-                        'costume': selectedCostume?.id ?? 0,
-                        'backupcostume': backupCostume?.id ?? 0,
-                      }),
-                      headers: {
-                        'API-Key': box.get('apiKey') ?? '',
-                      },
+                  } else if (hasMultipleShifts && selectedShiftId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please select a shift before signing up!'),
+                      ),
                     );
-
-                    if (response.statusCode == 200) {
-                      final Map<String, dynamic> data =
-                          json.decode(response.body);
-
-                      // Show message
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(data['success_message'] ?? 'Unknown'),
-                        ),
-                      );
-
-                      // Navigate back to event
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EventPage(
-                            troopid: widget.troopid,
-                          ),
-                        ),
-                        (route) => false, // Remove all previous routes
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to sign up!'),
-                        ),
-                      );
-                    }
+                  } else {
+                    _submitSignUp();
                   }
                 },
                 child: const Text('Sign Up'),
@@ -215,5 +207,54 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _submitSignUp() async {
+    final box = Hive.box('TTMobileApp');
+    final rawData = box.get('userData');
+    final userData = json.decode(rawData);
+
+    final params = {
+      'action': 'sign_up',
+      'trooperid': userData['user']['user_id'],
+      'addedby': 0,
+      'troopid': widget.troopid,
+      'status': selectedStatus,
+      'costume': selectedCostume?.id ?? 0,
+      'backupcostume': backupCostume?.id ?? 0,
+    };
+
+    if (selectedShiftId != null) {
+      params['shiftid'] = selectedShiftId!;
+    }
+
+    final response = await http.get(
+      mobileApiUri(params),
+      headers: {
+        'API-Key': box.get('apiKey') ?? '',
+      },
+    );
+
+    if (!mounted) return;
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(data['success_message'] ?? 'Unknown')),
+      );
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EventPage(troopid: widget.troopid),
+        ),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to sign up!')),
+      );
+    }
   }
 }

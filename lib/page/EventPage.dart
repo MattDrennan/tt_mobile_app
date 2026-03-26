@@ -346,6 +346,18 @@ class _EventPageState extends State<EventPage> {
     }
   }
 
+  Future<void> _cancelSignup() async {
+    final success = await cancelTroop(widget.troopid);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+            ? 'You have canceled the signup.'
+            : 'Something went wrong.'),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -392,6 +404,21 @@ class _EventPageState extends State<EventPage> {
                   ? 'N/A'
                   : troopData?['website'],
             ),
+            if ((troopData?['shifts'] as List?)?.isNotEmpty ?? false) ...[
+              const SizedBox(height: 10),
+              const Text(
+                "Shifts",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const Divider(),
+              ...((troopData!['shifts'] as List).map((shift) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2.0),
+                    child: Text(
+                      shift['display']?.toString() ?? '',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ))),
+            ],
             const SizedBox(height: 10),
 
             // Attendance Details
@@ -721,6 +748,8 @@ class _EventPageState extends State<EventPage> {
                                 limitedEvent: troopData?['limitedEvent'] ?? 0,
                                 allowTentative:
                                     troopData?['allowTentative'] ?? 0,
+                                shifts: List<dynamic>.from(
+                                    troopData?['shifts'] ?? []),
                               ),
                             ),
                           );
@@ -737,20 +766,7 @@ class _EventPageState extends State<EventPage> {
                               backgroundColor: Colors
                                   .red, // Set button color to red for "Cancel"
                             ),
-                            onPressed: () async {
-                              if (await cancelTroop(widget.troopid)) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'You have canceled the signup.')),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Something went wrong.')),
-                                );
-                              }
-                            },
+                            onPressed: () => _cancelSignup(),
                             child: Text('Cancel Signup'),
                           ),
                         ),

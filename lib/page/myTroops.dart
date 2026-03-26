@@ -20,6 +20,20 @@ class _myTroopsState extends State<myTroops> {
   // Unescape HTML entities
   final unescape = HtmlUnescape();
 
+  List<Widget> _buildShiftList(dynamic shifts) {
+    if (shifts == null || (shifts as List).isEmpty) return [];
+    return shifts.map<Widget>((shift) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 2.0),
+        child: Text(
+          '${shift['display']} — ${shift['status']}',
+          style: const TextStyle(fontSize: 12, color: Colors.white70),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }).toList();
+  }
+
   Future<void> fetchTroops() async {
     final box = Hive.box('TTMobileApp');
     final userData = await json.decode(box.get('userData'));
@@ -108,28 +122,10 @@ class _myTroopsState extends State<myTroops> {
                                         height: 24,
                                       ),
                                     ),
-                                    troops[index]['link'] != null &&
-                                            troops[index]['link'] > 0
-                                        ? Text(
-                                            formatDateWithTime(
-                                              unescape.convert(troops[index]
-                                                      ['dateStart'] ??
-                                                  ''),
-                                              unescape.convert(troops[index]
-                                                      ['dateEnd'] ??
-                                                  ''),
-                                            ),
-                                          )
-                                        : Text(
-                                            formatDate(
-                                              unescape.convert(troops[index]
-                                                      ['dateStart'] ??
-                                                  ''),
-                                            ),
-                                          ),
-                                    SizedBox(height: 5),
                                     Text(unescape
                                         .convert(troops[index]['name'] ?? '')),
+                                    const SizedBox(height: 4),
+                                    ..._buildShiftList(troops[index]['my_shifts']),
                                   ],
                                 ),
                               ),
