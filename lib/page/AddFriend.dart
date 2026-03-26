@@ -91,8 +91,8 @@ class _AddFriendState extends State<AddFriend> {
       return data
           .map<Trooper>((t) => Trooper(
                 id: t['id'],
-                name: t['name'],
-                tkid: t['tkid_formatted'],
+                name: t['display_name'] ?? '',
+                tkid: t['tkid_formatted'] ?? '',
               ))
           .toList();
     } else {
