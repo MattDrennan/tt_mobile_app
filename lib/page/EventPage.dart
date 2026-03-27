@@ -146,6 +146,20 @@ class _EventPageState extends State<EventPage> {
   List<dynamic> get _eventShifts =>
       List<dynamic>.from(troopData?['shifts'] ?? []);
 
+  /// True when the event allows guests (guests_allowed is null = unlimited, or > 0).
+  bool get _guestsAllowed {
+    final allowed = troopData?['guests_allowed'];
+    if (allowed == null) return true;
+    return (allowed as num).toInt() > 0;
+  }
+
+  /// True when the event allows friends (friends_allowed is null = unlimited, or > 0).
+  bool get _friendsAllowed {
+    final allowed = troopData?['friends_allowed'];
+    if (allowed == null) return true;
+    return (allowed as num).toInt() > 0;
+  }
+
   int? selectedRosterShiftId;
   List<dynamic> myFriends = [];
   List<dynamic> myGuests = [];
@@ -277,10 +291,13 @@ class _EventPageState extends State<EventPage> {
     try {
       // Open the Hive box
       final box = Hive.box('TTMobileApp');
+      final userData = json.decode(box.get('userData'));
+      final int userId = int.parse(userData['user']['user_id'].toString());
 
       final response = await http.get(
         mobileApiUri({
           'troopid': troopid,
+          'trooperid': userId,
           'action': 'event',
         }),
         headers: {
@@ -916,47 +933,51 @@ class _EventPageState extends State<EventPage> {
                 }),
                 const SizedBox(height: 8),
                 if (isInRoster) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddFriend(
-                              troopid: widget.troopid,
-                              limitedEvent: troopData?['limitedEvent'] ?? 0,
-                              allowTentative: troopData?['allowTentative'] ?? 0,
-                              shifts: _eventShifts,
+                  if (_friendsAllowed)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddFriend(
+                                troopid: widget.troopid,
+                                limitedEvent: troopData?['limitedEvent'] ?? 0,
+                                allowTentative:
+                                    troopData?['allowTentative'] ?? 0,
+                                shifts: _eventShifts,
+                              ),
                             ),
-                          ),
-                        );
-                        if (mounted) fetchMyFriends();
-                      },
-                      icon: const Icon(Icons.person_add),
-                      label: const Text('Add Friend'),
+                          );
+                          if (mounted) fetchMyFriends();
+                        },
+                        icon: const Icon(Icons.person_add),
+                        label: const Text('Add Friend'),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddGuest(
-                              troopid: widget.troopid,
-                              shifts: _eventShifts,
+                  if (_guestsAllowed) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddGuest(
+                                troopid: widget.troopid,
+                                shifts: _eventShifts,
+                              ),
                             ),
-                          ),
-                        );
-                        if (mounted) fetchMyGuests();
-                      },
-                      icon: const Icon(Icons.group_add),
-                      label: const Text('Add Guest'),
+                          );
+                          if (mounted) fetchMyGuests();
+                        },
+                        icon: const Icon(Icons.group_add),
+                        label: const Text('Add Guest'),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ] else ...[
                 // Single-shift or no-shift event: original behavior
@@ -992,50 +1013,54 @@ class _EventPageState extends State<EventPage> {
                               child: const Text('Cancel Signup'),
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AddFriend(
-                                      troopid: widget.troopid,
-                                      limitedEvent:
-                                          troopData?['limitedEvent'] ?? 0,
-                                      allowTentative:
-                                          troopData?['allowTentative'] ?? 0,
-                                      shifts: _eventShifts,
+                          if (_friendsAllowed) ...[
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => AddFriend(
+                                        troopid: widget.troopid,
+                                        limitedEvent:
+                                            troopData?['limitedEvent'] ?? 0,
+                                        allowTentative:
+                                            troopData?['allowTentative'] ?? 0,
+                                        shifts: _eventShifts,
+                                      ),
                                     ),
-                                  ),
-                                );
-                                if (mounted) fetchMyFriends();
-                              },
-                              icon: const Icon(Icons.person_add),
-                              label: const Text('Add Friend'),
+                                  );
+                                  if (mounted) fetchMyFriends();
+                                },
+                                icon: const Icon(Icons.person_add),
+                                label: const Text('Add Friend'),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AddGuest(
-                                      troopid: widget.troopid,
-                                      shifts: _eventShifts,
+                          ],
+                          if (_guestsAllowed) ...[
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => AddGuest(
+                                        troopid: widget.troopid,
+                                        shifts: _eventShifts,
+                                      ),
                                     ),
-                                  ),
-                                );
-                                if (mounted) fetchMyGuests();
-                              },
-                              icon: const Icon(Icons.group_add),
-                              label: const Text('Add Guest'),
+                                  );
+                                  if (mounted) fetchMyGuests();
+                                },
+                                icon: const Icon(Icons.group_add),
+                                label: const Text('Add Guest'),
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
               ],

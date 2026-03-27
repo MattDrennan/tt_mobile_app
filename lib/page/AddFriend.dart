@@ -37,10 +37,14 @@ class _AddFriendState extends State<AddFriend> {
   void initState() {
     super.initState();
     selectedStatus = widget.limitedEvent == 1 ? 'pending' : 'going';
-    if (widget.shifts.isNotEmpty) {
-      selectedShiftId = (widget.shifts.first['id'] as num).toInt();
+    if (_availableShifts.isNotEmpty) {
+      selectedShiftId = (_availableShifts.first['id'] as num).toInt();
     }
   }
+
+  List<dynamic> get _availableShifts => widget.shifts
+      .where((s) => s['can_add_friend'] != false)
+      .toList();
 
   bool get hasMultipleShifts => widget.shifts.length > 1;
 
@@ -112,7 +116,7 @@ class _AddFriendState extends State<AddFriend> {
               const Text('Shift:', style: TextStyle(fontSize: 16)),
               DropdownButton<int>(
                 value: selectedShiftId,
-                items: widget.shifts.map<DropdownMenuItem<int>>((shift) {
+                items: _availableShifts.map<DropdownMenuItem<int>>((shift) {
                   return DropdownMenuItem<int>(
                     value: (shift['id'] as num).toInt(),
                     child: Text(
