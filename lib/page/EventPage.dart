@@ -427,10 +427,12 @@ class _EventPageState extends State<EventPage> {
 
     final data = json.decode(response.body);
     if (data['success'] == true) {
-      setState(() {
-        myShiftStatuses.remove(shiftId);
-        isInRoster = myShiftStatuses.isNotEmpty;
-      });
+      await Future.wait([
+        fetchEvent(widget.troopid),
+        fetchMyFriends(),
+        fetchMyGuests(),
+      ]);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Shift cancelled.')),
       );
@@ -561,7 +563,7 @@ class _EventPageState extends State<EventPage> {
 
     final data = json.decode(response.body);
     if (data['success'] == true) {
-      await fetchMyGuests();
+      await Future.wait([fetchMyGuests(), fetchEvent(widget.troopid)]);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Guest cancelled.')),
@@ -592,7 +594,7 @@ class _EventPageState extends State<EventPage> {
 
     final data = json.decode(response.body);
     if (data['success'] == true) {
-      await fetchMyFriends();
+      await Future.wait([fetchMyFriends(), fetchEvent(widget.troopid)]);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Friend signup cancelled.')),
