@@ -11,6 +11,7 @@ import 'package:tt_mobile_app/custom/AppBar.dart';
 import 'package:tt_mobile_app/custom/Functions.dart';
 import 'package:tt_mobile_app/custom/LimitRow.dart';
 import 'package:tt_mobile_app/page/AddFriend.dart';
+import 'package:tt_mobile_app/page/AddGuest.dart';
 import 'package:tt_mobile_app/page/SignUpScreen.dart';
 import 'package:add_2_calendar/add_2_calendar.dart';
 
@@ -147,6 +148,7 @@ class _EventPageState extends State<EventPage> {
 
   int? selectedRosterShiftId;
   List<dynamic> myFriends = [];
+  List<dynamic> myGuests = [];
 
   List<dynamic> get _filteredRoster {
     final roster = rosterData ?? [];
@@ -497,6 +499,63 @@ class _EventPageState extends State<EventPage> {
     }
   }
 
+  Future<void> fetchMyGuests() async {
+    final box = Hive.box('TTMobileApp');
+    final userData = json.decode(box.get('userData'));
+    final int userId = int.parse(userData['user']['user_id'].toString());
+
+    try {
+      final response = await http.get(
+        mobileApiUri({
+          'action': 'get_guests_for_event',
+          'trooperid': userId,
+          'troopid': widget.troopid,
+        }),
+        headers: {'API-Key': box.get('apiKey') ?? ''},
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        setState(() {
+          myGuests = json.decode(response.body) as List<dynamic>;
+        });
+      }
+    } catch (e) {
+      debugPrint('fetchMyGuests error: $e');
+    }
+  }
+
+  Future<void> _cancelGuest(int guestId) async {
+    final box = Hive.box('TTMobileApp');
+    final userData = json.decode(box.get('userData'));
+    final int userId = int.parse(userData['user']['user_id'].toString());
+
+    final response = await http.get(
+      mobileApiUri({
+        'action': 'cancel_guest',
+        'trooperid': userId,
+        'guestid': guestId,
+      }),
+      headers: {'API-Key': box.get('apiKey') ?? ''},
+    );
+
+    if (!mounted) return;
+
+    final data = json.decode(response.body);
+    if (data['success'] == true) {
+      await fetchMyGuests();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Guest cancelled.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Something went wrong.')),
+      );
+    }
+  }
+
   Future<void> _cancelFriendShift(int friendTrooperId, int shiftId) async {
     final box = Hive.box('TTMobileApp');
     final userData = json.decode(box.get('userData'));
@@ -535,6 +594,7 @@ class _EventPageState extends State<EventPage> {
     fetchRoster(widget.troopid);
     checkInRoster();
     fetchMyFriends();
+    fetchMyGuests();
     fetchPhotos(widget.troopid);
   }
 
@@ -855,7 +915,7 @@ class _EventPageState extends State<EventPage> {
                   );
                 }),
                 const SizedBox(height: 8),
-                if (isInRoster)
+                if (isInRoster) ...[
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -877,6 +937,27 @@ class _EventPageState extends State<EventPage> {
                       label: const Text('Add Friend'),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddGuest(
+                              troopid: widget.troopid,
+                              shifts: _eventShifts,
+                            ),
+                          ),
+                        );
+                        if (mounted) fetchMyGuests();
+                      },
+                      icon: const Icon(Icons.group_add),
+                      label: const Text('Add Guest'),
+                    ),
+                  ),
+                ],
               ] else ...[
                 // Single-shift or no-shift event: original behavior
                 !isInRoster
@@ -935,6 +1016,26 @@ class _EventPageState extends State<EventPage> {
                               label: const Text('Add Friend'),
                             ),
                           ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => AddGuest(
+                                      troopid: widget.troopid,
+                                      shifts: _eventShifts,
+                                    ),
+                                  ),
+                                );
+                                if (mounted) fetchMyGuests();
+                              },
+                              icon: const Icon(Icons.group_add),
+                              label: const Text('Add Guest'),
+                            ),
+                          ),
                         ],
                       ),
               ],
@@ -988,6 +1089,57 @@ class _EventPageState extends State<EventPage> {
                               foregroundColor: Colors.red),
                           onPressed: () =>
                               _cancelFriendShift(friendTrooperId, shiftId),
+                          child: const Text('Cancel'),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
+            ],
+            // My Guests section
+            if (myGuests.isNotEmpty) ...[
+              const Divider(),
+              const SizedBox(height: 6),
+              const Text(
+                'My Guests',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              ...myGuests.map((guest) {
+                final int guestId = (guest['id'] as num).toInt();
+                final String name = guest['name']?.toString() ?? 'Unknown';
+                final String status =
+                    guest['status_formatted']?.toString() ?? '';
+                final String shiftDisplay =
+                    guest['shift_display']?.toString() ?? '';
+                final bool hasMultiple = _eventShifts.length > 1;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name, style: const TextStyle(fontSize: 14)),
+                            if (hasMultiple)
+                              Text(shiftDisplay,
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.white54)),
+                          ],
+                        ),
+                      ),
+                      Text(status,
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.green)),
+                      if (!isEventClosed()) ...[
+                        const SizedBox(width: 8),
+                        TextButton(
+                          style:
+                              TextButton.styleFrom(foregroundColor: Colors.red),
+                          onPressed: () => _cancelGuest(guestId),
                           child: const Text('Cancel'),
                         ),
                       ],
