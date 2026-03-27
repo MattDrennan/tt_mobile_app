@@ -86,9 +86,7 @@ class _AddGuestState extends State<AddGuest> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data['message'] ?? 'Guest added!')),
         );
-        setState(() {
-          _nameController.clear();
-        });
+        Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data['message'] ?? 'Failed to add guest.')),

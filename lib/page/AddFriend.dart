@@ -291,16 +291,16 @@ class _AddFriendState extends State<AddFriend> {
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['success_message'] ?? 'Added!')),
-      );
-      // Reset form so the same friend can be added to another shift,
-      // or a different friend can be added without navigating away.
-      setState(() {
-        selectedTrooper = null;
-        selectedCostume = null;
-        backupCostume = null;
-      });
+      if (data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['success_message'] ?? 'Added!')),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['success_message'] ?? 'Failed to sign up!')),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to sign up!')),

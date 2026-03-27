@@ -950,7 +950,10 @@ class _EventPageState extends State<EventPage> {
                               ),
                             ),
                           );
-                          if (mounted) fetchMyFriends();
+                          if (mounted) {
+                            fetchMyFriends();
+                            fetchEvent(widget.troopid);
+                          }
                         },
                         icon: const Icon(Icons.person_add),
                         label: const Text('Add Friend'),
@@ -971,7 +974,10 @@ class _EventPageState extends State<EventPage> {
                               ),
                             ),
                           );
-                          if (mounted) fetchMyGuests();
+                          if (mounted) {
+                            fetchMyGuests();
+                            fetchEvent(widget.troopid);
+                          }
                         },
                         icon: const Icon(Icons.group_add),
                         label: const Text('Add Guest'),
@@ -1032,7 +1038,10 @@ class _EventPageState extends State<EventPage> {
                                       ),
                                     ),
                                   );
-                                  if (mounted) fetchMyFriends();
+                                  if (mounted) {
+                                    fetchMyFriends();
+                                    fetchEvent(widget.troopid);
+                                  }
                                 },
                                 icon: const Icon(Icons.person_add),
                                 label: const Text('Add Friend'),
@@ -1054,7 +1063,10 @@ class _EventPageState extends State<EventPage> {
                                       ),
                                     ),
                                   );
-                                  if (mounted) fetchMyGuests();
+                                  if (mounted) {
+                                    fetchMyGuests();
+                                    fetchEvent(widget.troopid);
+                                  }
                                 },
                                 icon: const Icon(Icons.group_add),
                                 label: const Text('Add Guest'),
