@@ -63,6 +63,11 @@ class _EventPageState extends State<EventPage> {
     return DateTime.now().isBefore(endDate);
   }
 
+  bool isManualSelectionEvent() {
+    final status = troopData?['closed']?.toString().toLowerCase().trim();
+    return status == 'manualselection';
+  }
+
   Future<void> fetchPhotos(int troopid) async {
     try {
       final box = Hive.box('TTMobileApp');
@@ -410,6 +415,17 @@ class _EventPageState extends State<EventPage> {
   }
 
   Future<void> _cancelShift(int shiftId) async {
+    if (isManualSelectionEvent()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Manual Selection events do not allow cancellations from the app.'),
+        ),
+      );
+      return;
+    }
+
     final box = Hive.box('TTMobileApp');
     final userData = json.decode(box.get('userData'));
     final int userId = int.parse(userData['user']['user_id'].toString());
@@ -444,6 +460,17 @@ class _EventPageState extends State<EventPage> {
   }
 
   Future<bool> cancelTroop(int troopid) async {
+    if (isManualSelectionEvent()) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Manual Selection events do not allow cancellations from the app.'),
+        ),
+      );
+      return false;
+    }
+
     final box = Hive.box('TTMobileApp');
     final rawData = box.get('userData');
     final userData = json.decode(rawData);
@@ -546,6 +573,17 @@ class _EventPageState extends State<EventPage> {
   }
 
   Future<void> _cancelGuest(int guestId) async {
+    if (isManualSelectionEvent()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Manual Selection events do not allow cancellations from the app.'),
+        ),
+      );
+      return;
+    }
+
     final box = Hive.box('TTMobileApp');
     final userData = json.decode(box.get('userData'));
     final int userId = int.parse(userData['user']['user_id'].toString());
@@ -576,6 +614,17 @@ class _EventPageState extends State<EventPage> {
   }
 
   Future<void> _cancelFriendShift(int friendTrooperId, int shiftId) async {
+    if (isManualSelectionEvent()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Manual Selection events do not allow cancellations from the app.'),
+        ),
+      );
+      return;
+    }
+
     final box = Hive.box('TTMobileApp');
     final userData = json.decode(box.get('userData'));
     final int userId = int.parse(userData['user']['user_id'].toString());
@@ -904,12 +953,13 @@ class _EventPageState extends State<EventPage> {
                                 fontSize: 12, color: Colors.green),
                           ),
                           const SizedBox(width: 8),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                                foregroundColor: Colors.red),
-                            onPressed: () => _cancelShift(shiftId),
-                            child: const Text('Cancel'),
-                          ),
+                          if (!isManualSelectionEvent())
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                  foregroundColor: Colors.red),
+                              onPressed: () => _cancelShift(shiftId),
+                              child: const Text('Cancel'),
+                            ),
                         ] else
                           ElevatedButton(
                             onPressed: () {
@@ -1012,15 +1062,16 @@ class _EventPageState extends State<EventPage> {
                       )
                     : Column(
                         children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red),
-                              onPressed: () => _cancelSignup(),
-                              child: const Text('Cancel Signup'),
+                          if (!isManualSelectionEvent())
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red),
+                                onPressed: () => _cancelSignup(),
+                                child: const Text('Cancel Signup'),
+                              ),
                             ),
-                          ),
                           if (_friendsAllowed) ...[
                             const SizedBox(height: 10),
                             SizedBox(
@@ -1108,24 +1159,22 @@ class _EventPageState extends State<EventPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(name,
-                                style: const TextStyle(fontSize: 14)),
+                            Text(name, style: const TextStyle(fontSize: 14)),
                             if (hasMultiple)
                               Text(shiftDisplay,
                                   style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white54)),
+                                      fontSize: 12, color: Colors.white54)),
                           ],
                         ),
                       ),
                       Text(status,
                           style: const TextStyle(
                               fontSize: 12, color: Colors.green)),
-                      if (!isEventClosed()) ...[
+                      if (!isEventClosed() && !isManualSelectionEvent()) ...[
                         const SizedBox(width: 8),
                         TextButton(
-                          style: TextButton.styleFrom(
-                              foregroundColor: Colors.red),
+                          style:
+                              TextButton.styleFrom(foregroundColor: Colors.red),
                           onPressed: () =>
                               _cancelFriendShift(friendTrooperId, shiftId),
                           child: const Text('Cancel'),
@@ -1173,7 +1222,7 @@ class _EventPageState extends State<EventPage> {
                       Text(status,
                           style: const TextStyle(
                               fontSize: 12, color: Colors.green)),
-                      if (!isEventClosed()) ...[
+                      if (!isEventClosed() && !isManualSelectionEvent()) ...[
                         const SizedBox(width: 8),
                         TextButton(
                           style:

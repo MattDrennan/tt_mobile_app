@@ -42,9 +42,8 @@ class _AddFriendState extends State<AddFriend> {
     }
   }
 
-  List<dynamic> get _availableShifts => widget.shifts
-      .where((s) => s['can_add_friend'] != false)
-      .toList();
+  List<dynamic> get _availableShifts =>
+      widget.shifts.where((s) => s['can_add_friend'] != false).toList();
 
   bool get hasMultipleShifts => widget.shifts.length > 1;
 
@@ -298,7 +297,8 @@ class _AddFriendState extends State<AddFriend> {
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['success_message'] ?? 'Failed to sign up!')),
+          SnackBar(
+              content: Text(data['success_message'] ?? 'Failed to sign up!')),
         );
       }
     } else {

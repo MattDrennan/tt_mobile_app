@@ -89,7 +89,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 items: widget.shifts.map<DropdownMenuItem<int>>((shift) {
                   return DropdownMenuItem<int>(
                     value: shift['id'] as int,
-                    child: Text(shift['display']?.toString() ?? 'Shift ${shift['id']}'),
+                    child: Text(
+                        shift['display']?.toString() ?? 'Shift ${shift['id']}'),
                   );
                 }).toList(),
                 onChanged: (int? newValue) {
@@ -119,7 +120,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       child: Text("Tentative"),
                     ),
                 ] else
-                  DropdownMenuItem<String>(
+                  const DropdownMenuItem<String>(
                     value: 'pending',
                     child: Text("Request to attend (Pending)"),
                   ),
@@ -193,7 +194,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   } else if (hasMultipleShifts && selectedShiftId == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Please select a shift before signing up!'),
+                        content:
+                            Text('Please select a shift before signing up!'),
                       ),
                     );
                   } else {
