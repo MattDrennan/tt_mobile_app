@@ -20,6 +20,8 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   late final HomeController _controller;
+  // Stored to avoid unsafe context.read during dispose()
+  AuthController? _auth;
 
   @override
   void initState() {
@@ -34,9 +36,10 @@ class _HomeViewState extends State<HomeView> {
     _controller.checkUnconfirmedTroops();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = context.read<AuthController>();
-      auth.fetchSiteStatus();
-      auth.addListener(_onAuthChanged);
+      if (!mounted) return;
+      _auth = context.read<AuthController>();
+      _auth!.fetchSiteStatus();
+      _auth!.addListener(_onAuthChanged);
     });
   }
 
@@ -44,7 +47,7 @@ class _HomeViewState extends State<HomeView> {
   void dispose() {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
-    context.read<AuthController>().removeListener(_onAuthChanged);
+    _auth?.removeListener(_onAuthChanged);
     super.dispose();
   }
 

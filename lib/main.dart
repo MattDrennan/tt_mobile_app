@@ -128,18 +128,23 @@ class _AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<_AuthGate> {
+  // Stored to avoid unsafe context.read during dispose()
+  AuthController? _auth;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthController>().addListener(_onAuthChanged);
+      if (!mounted) return;
+      _auth = context.read<AuthController>();
+      _auth!.addListener(_onAuthChanged);
       _route();
     });
   }
 
   @override
   void dispose() {
-    context.read<AuthController>().removeListener(_onAuthChanged);
+    _auth?.removeListener(_onAuthChanged);
     super.dispose();
   }
 
