@@ -1,33 +1,41 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:http/http.dart' as http;
-import 'package:tt_mobile_app/custom/AppBar.dart';
-import 'package:tt_mobile_app/custom/Functions.dart';
 
-class AddGuest extends StatefulWidget {
-  final int troopid;
+import '../services/api_client.dart';
+import '../widgets/tt_app_bar.dart';
+
+class AddGuestView extends StatefulWidget {
+  final int troopId;
+  final String userId;
   final List<dynamic> shifts;
+  final ApiClient api;
 
-  const AddGuest({
+  const AddGuestView({
     super.key,
-    required this.troopid,
+    required this.troopId,
+    required this.userId,
+    required this.api,
     this.shifts = const [],
   });
 
   @override
-  State<AddGuest> createState() => _AddGuestState();
+  State<AddGuestView> createState() => _AddGuestViewState();
 }
 
-class _AddGuestState extends State<AddGuest> {
+class _AddGuestViewState extends State<AddGuestView> {
   final TextEditingController _nameController = TextEditingController();
-  int? selectedShiftId;
+  int? _selectedShiftId;
+  bool _isSubmitting = false;
+
+  List<dynamic> get _availableShifts =>
+      widget.shifts.where((s) => s['can_add_guest'] != false).toList();
+
+  bool get _hasMultipleShifts => widget.shifts.length > 1;
 
   @override
   void initState() {
     super.initState();
     if (_availableShifts.isNotEmpty) {
-      selectedShiftId = (_availableShifts.first['id'] as num).toInt();
+      _selectedShiftId = (_availableShifts.first['id'] as num).toInt();
     }
   }
 
@@ -37,13 +45,7 @@ class _AddGuestState extends State<AddGuest> {
     super.dispose();
   }
 
-  List<dynamic> get _availableShifts => widget.shifts
-      .where((s) => s['can_add_guest'] != false)
-      .toList();
-
-  bool get hasMultipleShifts => widget.shifts.length > 1;
-
-  Future<void> _submitAddGuest() async {
+  Future<void> _submit() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -51,51 +53,49 @@ class _AddGuestState extends State<AddGuest> {
       );
       return;
     }
-
-    if (hasMultipleShifts && selectedShiftId == null) {
+    if (_hasMultipleShifts && _selectedShiftId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a shift.')),
       );
       return;
     }
 
-    final box = Hive.box('TTMobileApp');
-    final userData = json.decode(box.get('userData'));
+    setState(() => _isSubmitting = true);
 
-    final params = {
+    final params = <String, dynamic>{
       'action': 'add_guest',
-      'trooperid': userData['user']['user_id'].toString(),
-      'troopid': widget.troopid,
+      'trooperid': widget.userId,
+      'troopid': widget.troopId,
       'name': name,
     };
+    if (_selectedShiftId != null) params['shiftid'] = _selectedShiftId!;
 
-    if (selectedShiftId != null) {
-      params['shiftid'] = selectedShiftId!;
-    }
-
-    final response = await http.get(
-      mobileApiUri(params),
-      headers: {'API-Key': box.get('apiKey') ?? ''},
-    );
-
-    if (!mounted) return;
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data['success'] == true) {
+    try {
+      final data =
+          await widget.api.getJson(widget.api.mobileApiUri(params));
+      if (!mounted) return;
+      final map = data as Map<String, dynamic>;
+      if (map['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Guest added!')),
+          SnackBar(
+              content:
+                  Text(map['message']?.toString() ?? 'Guest added!')),
         );
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Failed to add guest.')),
+          SnackBar(
+              content: Text(
+                  map['message']?.toString() ?? 'Failed to add guest.')),
         );
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to add guest.')),
-      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -108,22 +108,19 @@ class _AddGuestState extends State<AddGuest> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (hasMultipleShifts) ...[
+            if (_hasMultipleShifts) ...[
               const Text('Shift:', style: TextStyle(fontSize: 16)),
               DropdownButton<int>(
-                value: selectedShiftId,
-                items: _availableShifts.map<DropdownMenuItem<int>>((shift) {
+                value: _selectedShiftId,
+                items:
+                    _availableShifts.map<DropdownMenuItem<int>>((shift) {
                   return DropdownMenuItem<int>(
                     value: (shift['id'] as num).toInt(),
-                    child: Text(
-                        shift['display']?.toString() ?? 'Shift ${shift['id']}'),
+                    child: Text(shift['display']?.toString() ??
+                        'Shift ${shift['id']}'),
                   );
                 }).toList(),
-                onChanged: (int? newValue) {
-                  setState(() {
-                    selectedShiftId = newValue;
-                  });
-                },
+                onChanged: (v) => setState(() => _selectedShiftId = v),
                 isExpanded: true,
                 underline: Container(height: 2, color: Colors.blue),
               ),
@@ -138,13 +135,13 @@ class _AddGuestState extends State<AddGuest> {
                 border: OutlineInputBorder(),
               ),
               textCapitalization: TextCapitalization.words,
-              onSubmitted: (_) => _submitAddGuest(),
+              onSubmitted: (_) => _submit(),
             ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _submitAddGuest,
+                onPressed: _isSubmitting ? null : _submit,
                 child: const Text('Add Guest'),
               ),
             ),
