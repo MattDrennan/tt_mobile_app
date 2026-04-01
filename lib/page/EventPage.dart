@@ -1005,6 +1005,7 @@ class _EventPageState extends State<EventPage> {
                           if (mounted) {
                             fetchMyFriends();
                             fetchEvent(widget.troopid);
+                            fetchRoster(widget.troopid);
                           }
                         },
                         icon: const Icon(Icons.person_add),
@@ -1029,6 +1030,7 @@ class _EventPageState extends State<EventPage> {
                           if (mounted) {
                             fetchMyGuests();
                             fetchEvent(widget.troopid);
+                            fetchRoster(widget.troopid);
                           }
                         },
                         icon: const Icon(Icons.group_add),
@@ -1094,6 +1096,7 @@ class _EventPageState extends State<EventPage> {
                                   if (mounted) {
                                     fetchMyFriends();
                                     fetchEvent(widget.troopid);
+                                    fetchRoster(widget.troopid);
                                   }
                                 },
                                 icon: const Icon(Icons.person_add),
@@ -1119,6 +1122,7 @@ class _EventPageState extends State<EventPage> {
                                   if (mounted) {
                                     fetchMyGuests();
                                     fetchEvent(widget.troopid);
+                                    fetchRoster(widget.troopid);
                                   }
                                 },
                                 icon: const Icon(Icons.group_add),
