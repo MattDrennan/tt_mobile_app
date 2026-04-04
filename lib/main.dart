@@ -156,8 +156,10 @@ class _AuthGateState extends State<_AuthGate> {
     if (auth.isLoading) return;
 
     if (auth.isLoggedIn) {
+      _auth?.removeListener(_onAuthChanged);
       Navigator.pushReplacementNamed(context, '/home');
     } else {
+      _auth?.removeListener(_onAuthChanged);
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
