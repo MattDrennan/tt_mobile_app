@@ -3,6 +3,7 @@ import 'package:html_unescape/html_unescape.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/troop_controller.dart';
+import '../models/app_organization.dart';
 import '../models/troop.dart';
 import '../services/api_client.dart';
 import '../utils/date_utils.dart' as dt;
@@ -21,15 +22,6 @@ class _TroopListViewState extends State<TroopListView> {
   final TextEditingController _searchController = TextEditingController();
   final _unescape = HtmlUnescape();
 
-  /// Maps organization name → local icon asset path.
-  static const _iconByName = <String, String>{
-    'Everglades Squad': 'assets/icons/everglades_icon.png',
-    'Makaze Squad':     'assets/icons/makaze_icon.png',
-    'Parjai Squad':     'assets/icons/parjai_icon.png',
-    'Squad 7':          'assets/icons/squad7_icon.png',
-    'Tampa Bay Squad':  'assets/icons/tampabay_icon.png',
-  };
-  static const _fallbackIcon = 'assets/icons/garrison_icon.png';
 
   @override
   void initState() {
@@ -55,15 +47,7 @@ class _TroopListViewState extends State<TroopListView> {
     if (mounted) setState(() {});
   }
 
-  /// Returns the icon path for a troop by matching its organization ID
-  /// against the loaded organizations list.
-  String _iconForTroop(Troop troop) {
-    final org = _controller.organizations
-        .where((o) => o.id == troop.squad)
-        .firstOrNull;
-    if (org == null) return _fallbackIcon;
-    return _iconByName[org.name] ?? _fallbackIcon;
-  }
+  String _iconForTroop(Troop troop) => _controller.iconForTroop(troop);
 
   @override
   Widget build(BuildContext context) {
@@ -91,14 +75,14 @@ class _TroopListViewState extends State<TroopListView> {
                 children: [
                   _SquadFilterButton(
                     label: 'All',
-                    iconPath: _fallbackIcon,
+                    iconPath: AppOrganization.fallbackIcon,
                     selected: _controller.selectedOrgId == 0,
                     onPressed: () => _controller.fetchTroops(0),
                   ),
                   for (final org in _controller.organizations)
                     _SquadFilterButton(
                       label: org.name,
-                      iconPath: _iconByName[org.name] ?? _fallbackIcon,
+                      iconPath: org.iconPath,
                       selected: _controller.selectedOrgId == org.id,
                       onPressed: () => _controller.fetchTroops(org.id),
                     ),

@@ -20,20 +20,13 @@ class _MyTroopsViewState extends State<MyTroopsView> {
   late final TroopController _controller;
   final _unescape = HtmlUnescape();
 
-  static const _squadIcons = [
-    'assets/icons/garrison_icon.png',
-    'assets/icons/everglades_icon.png',
-    'assets/icons/makaze_icon.png',
-    'assets/icons/parjai_icon.png',
-    'assets/icons/squad7_icon.png',
-    'assets/icons/tampabay_icon.png',
-  ];
 
   @override
   void initState() {
     super.initState();
     _controller = TroopController(context.read<ApiClient>());
     _controller.addListener(_onChanged);
+    _controller.fetchOrganizations();
     final userId = context.read<AuthController>().currentUser?.id ?? '';
     _controller.fetchMyTroops(userId);
   }
@@ -48,6 +41,8 @@ class _MyTroopsViewState extends State<MyTroopsView> {
   void _onChanged() {
     if (mounted) setState(() {});
   }
+
+  String _iconForTroop(Troop troop) => _controller.iconForTroop(troop);
 
   @override
   Widget build(BuildContext context) {
@@ -74,8 +69,7 @@ class _MyTroopsViewState extends State<MyTroopsView> {
                           children: _controller.myTroops
                               .map((troop) => _MyTroopButton(
                                     troop: troop,
-                                    iconPath:
-                                        _squadIcons[troop.squad.clamp(0, 5)],
+                                    iconPath: _iconForTroop(troop),
                                     unescape: _unescape,
                                   ))
                               .toList(),

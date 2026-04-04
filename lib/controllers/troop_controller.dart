@@ -83,6 +83,14 @@ class TroopController extends ChangeNotifier {
     }
   }
 
+  // ── Icon resolution ───────────────────────────────────────────────────────
+
+  /// Returns the icon asset path for a troop based on its organization.
+  String iconForTroop(Troop troop) {
+    final org = _organizations.where((o) => o.id == troop.squad).firstOrNull;
+    return org?.iconPath ?? AppOrganization.fallbackIcon;
+  }
+
   // ── Filtering ──────────────────────────────────────────────────────────────
 
   void setSearch(String query) {
