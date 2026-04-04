@@ -312,8 +312,9 @@ class EventController extends ChangeNotifier {
         contentType: MediaType.parse(mimeType),
       );
       final response = await _api.postMultipart(
-        _api.troopTrackerUploadUri(),
+        _api.mobileApiUri(),
         fields: {
+          'action': 'upload_photo',
           'troopid': eventId.toString(),
           'trooperid': userId,
           'admin': (_event?.isInFuture == true) ? '1' : '0',
@@ -322,10 +323,11 @@ class EventController extends ChangeNotifier {
       );
       final body = await http.Response.fromStream(response);
       final result = json.decode(body.body) as Map<String, dynamic>;
-      final success =
-          response.statusCode == 200 && result['success'] == true;
+      final success = body.statusCode == 200 && result['success'] == true;
       if (!success) {
-        _actionError = result['message']?.toString() ?? 'Upload failed.';
+        _actionError = result['message']?.toString()
+            ?? result['error']?.toString()
+            ?? 'Upload failed.';
       } else {
         await _fetchPhotos();
       }

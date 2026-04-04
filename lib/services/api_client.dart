@@ -81,14 +81,6 @@ class ApiClient {
     );
   }
 
-  Uri troopTrackerUploadUri([Map<String, dynamic>? queryParameters]) {
-    final rawUrl = dotenv.env['TROOP_TRACKER_UPLOAD_URL'];
-    if (rawUrl == null || rawUrl.isEmpty) {
-      throw StateError('TROOP_TRACKER_UPLOAD_URL is not configured in .env');
-    }
-    return _buildConfiguredUri(rawUrl, queryParameters);
-  }
-
   // ── Default headers ──────────────────────────────────────────────────────
 
   Map<String, String> get _apiKeyHeaders => {

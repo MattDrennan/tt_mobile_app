@@ -125,14 +125,14 @@ class _EventViewState extends State<EventView> {
 
   Future<void> _uploadImage() async {
     final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery);
+    // imageQuality forces JPEG conversion on iOS (handles HEIC photos)
+    final file = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+    );
     if (file == null) return;
-    final success = await _controller.uploadPhoto(file);
-    if (!mounted) return;
-    if (!success && _controller.actionError == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Upload failed.')));
-    }
+    await _controller.uploadPhoto(file);
+    // Error/success is shown via _onChanged → no additional snackbar needed here
   }
 
   Future<void> _cancelSignup() async {
