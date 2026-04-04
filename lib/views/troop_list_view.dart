@@ -21,29 +21,22 @@ class _TroopListViewState extends State<TroopListView> {
   final TextEditingController _searchController = TextEditingController();
   final _unescape = HtmlUnescape();
 
-  static const _squadNames = [
-    'All',
-    'Everglades Squad',
-    'Makaze Squad',
-    'Parjai Squad',
-    'Squad 7',
-    'Tampa Bay Squad',
-  ];
-
-  static const _squadIcons = [
-    'assets/icons/garrison_icon.png',
-    'assets/icons/everglades_icon.png',
-    'assets/icons/makaze_icon.png',
-    'assets/icons/parjai_icon.png',
-    'assets/icons/squad7_icon.png',
-    'assets/icons/tampabay_icon.png',
-  ];
+  /// Maps organization name → local icon asset path.
+  static const _iconByName = <String, String>{
+    'Everglades Squad': 'assets/icons/everglades_icon.png',
+    'Makaze Squad':     'assets/icons/makaze_icon.png',
+    'Parjai Squad':     'assets/icons/parjai_icon.png',
+    'Squad 7':          'assets/icons/squad7_icon.png',
+    'Tampa Bay Squad':  'assets/icons/tampabay_icon.png',
+  };
+  static const _fallbackIcon = 'assets/icons/garrison_icon.png';
 
   @override
   void initState() {
     super.initState();
     _controller = TroopController(context.read<ApiClient>());
     _controller.addListener(_onChanged);
+    _controller.fetchOrganizations();
     _controller.fetchTroops(0);
     _searchController.addListener(() {
       _controller.setSearch(_searchController.text);
@@ -60,6 +53,16 @@ class _TroopListViewState extends State<TroopListView> {
 
   void _onChanged() {
     if (mounted) setState(() {});
+  }
+
+  /// Returns the icon path for a troop by matching its organization ID
+  /// against the loaded organizations list.
+  String _iconForTroop(Troop troop) {
+    final org = _controller.organizations
+        .where((o) => o.id == troop.squad)
+        .firstOrNull;
+    if (org == null) return _fallbackIcon;
+    return _iconByName[org.name] ?? _fallbackIcon;
   }
 
   @override
@@ -81,20 +84,27 @@ class _TroopListViewState extends State<TroopListView> {
               ),
             ),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: List.generate(_squadNames.length, (i) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: ElevatedButton(
-                    onPressed: () => _controller.fetchTroops(i),
-                    child: Text(_squadNames[i]),
+          if (_controller.organizations.isNotEmpty)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _SquadFilterButton(
+                    label: 'All',
+                    iconPath: _fallbackIcon,
+                    selected: _controller.selectedOrgId == 0,
+                    onPressed: () => _controller.fetchTroops(0),
                   ),
-                );
-              }),
+                  for (final org in _controller.organizations)
+                    _SquadFilterButton(
+                      label: org.name,
+                      iconPath: _iconByName[org.name] ?? _fallbackIcon,
+                      selected: _controller.selectedOrgId == org.id,
+                      onPressed: () => _controller.fetchTroops(org.id),
+                    ),
+                ],
+              ),
             ),
-          ),
           Expanded(
             child: _controller.isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -106,13 +116,45 @@ class _TroopListViewState extends State<TroopListView> {
                           final troop = _controller.troops[index];
                           return _TroopButton(
                             troop: troop,
-                            iconPath: _squadIcons[troop.squad.clamp(0, 5)],
+                            iconPath: _iconForTroop(troop),
                             unescape: _unescape,
                           );
                         },
                       ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SquadFilterButton extends StatelessWidget {
+  final String label;
+  final String iconPath;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  const _SquadFilterButton({
+    required this.label,
+    required this.iconPath,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+      child: ElevatedButton.icon(
+        icon: Image.asset(iconPath, width: 18, height: 18),
+        label: Text(label),
+        style: selected
+            ? ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              )
+            : null,
+        onPressed: onPressed,
       ),
     );
   }
