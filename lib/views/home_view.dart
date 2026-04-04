@@ -61,6 +61,7 @@ class _HomeViewState extends State<HomeView> {
 
     if (auth.loggedOut) {
       auth.clearLoggedOutFlag();
+      _auth?.removeListener(_onAuthChanged);
       Navigator.pushReplacementNamed(context, '/');
       return;
     }
@@ -69,9 +70,11 @@ class _HomeViewState extends State<HomeView> {
     if (status == null) return;
 
     if (status.isClosed) {
+      _auth?.removeListener(_onAuthChanged);
       Navigator.pushReplacementNamed(context, '/closed',
           arguments: status.message);
     } else if (!status.canAccess || status.isBanned) {
+      _auth?.removeListener(_onAuthChanged);
       Navigator.pushReplacementNamed(context, '/access-gate');
     }
   }

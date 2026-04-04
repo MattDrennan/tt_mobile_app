@@ -34,10 +34,14 @@ class _LoginViewState extends State<LoginView> {
   }
 
   void _onAuthChanged() {
-    final auth = context.read<AuthController>();
     if (!mounted) return;
+    final auth = context.read<AuthController>();
 
     if (auth.isLoggedIn) {
+      // Remove listener immediately to prevent re-firing during the exit
+      // animation (MaterialPageRoute disposes after ~300ms, but notifyListeners
+      // can fire again before then if downstream screens load quickly).
+      _auth?.removeListener(_onAuthChanged);
       Navigator.pushReplacementNamed(context, '/access-gate');
     }
   }

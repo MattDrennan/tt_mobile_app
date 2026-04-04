@@ -13,11 +13,33 @@ class AccessGateView extends StatefulWidget {
 class _AccessGateViewState extends State<AccessGateView> {
   bool _checking = false;
   String? _statusMsg;
+  AuthController? _auth;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndRoute());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _auth = context.read<AuthController>();
+      _auth!.addListener(_onAuthChanged);
+      _checkAndRoute();
+    });
+  }
+
+  @override
+  void dispose() {
+    _auth?.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  void _onAuthChanged() {
+    if (!mounted) return;
+    final auth = context.read<AuthController>();
+    if (auth.loggedOut) {
+      auth.clearLoggedOutFlag();
+      _auth?.removeListener(_onAuthChanged);
+      Navigator.pushReplacementNamed(context, '/');
+    }
   }
 
   Future<void> _checkAndRoute() async {
