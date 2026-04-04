@@ -22,15 +22,6 @@ class _ChatListViewState extends State<ChatListView> {
   late final ChatController _controller;
   final _unescape = HtmlUnescape();
 
-  static const _squadIcons = [
-    'assets/icons/garrison_icon.png',
-    'assets/icons/everglades_icon.png',
-    'assets/icons/makaze_icon.png',
-    'assets/icons/parjai_icon.png',
-    'assets/icons/squad7_icon.png',
-    'assets/icons/tampabay_icon.png',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -41,6 +32,7 @@ class _ChatListViewState extends State<ChatListView> {
       currentUser: user,
     );
     _controller.addListener(_onChanged);
+    _controller.fetchOrganizations();
     _controller.fetchRooms();
   }
 
@@ -81,7 +73,7 @@ class _ChatListViewState extends State<ChatListView> {
                               .map((room) => _RoomButton(
                                     room: room,
                                     unescape: _unescape,
-                                    squadIcons: _squadIcons,
+                                    iconPath: _controller.iconForRoom(room),
                                     currentUser:
                                         context
                                             .read<AuthController>()
@@ -110,7 +102,7 @@ class _ChatListViewState extends State<ChatListView> {
 class _RoomButton extends StatelessWidget {
   final ChatRoom room;
   final HtmlUnescape unescape;
-  final List<String> squadIcons;
+  final String iconPath;
   final AppUser currentUser;
   final ApiClient api;
   final VoidCallback onNoThread;
@@ -118,7 +110,7 @@ class _RoomButton extends StatelessWidget {
   const _RoomButton({
     required this.room,
     required this.unescape,
-    required this.squadIcons,
+    required this.iconPath,
     required this.currentUser,
     required this.api,
     required this.onNoThread,
@@ -155,7 +147,7 @@ class _RoomButton extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10.0),
                 child: Image.asset(
-                  squadIcons[room.squad.clamp(0, 5)],
+                  iconPath,
                   width: 24,
                   height: 24,
                 ),

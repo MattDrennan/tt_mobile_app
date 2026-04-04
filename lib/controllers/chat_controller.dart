@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
 
+import '../models/app_organization.dart';
 import '../models/app_user.dart';
 import '../models/chat_room.dart';
 import '../services/api_client.dart';
@@ -21,6 +22,7 @@ class ChatController extends ChangeNotifier {
   // ── Room list state ───────────────────────────────────────────────────────
 
   List<ChatRoom> _rooms = [];
+  List<AppOrganization> _organizations = [];
   bool _isLoadingRooms = false;
 
   // ── Active chat state ─────────────────────────────────────────────────────
@@ -37,6 +39,7 @@ class ChatController extends ChangeNotifier {
   // ── Exposed state ──────────────────────────────────────────────────────────
 
   List<ChatRoom> get rooms => _rooms;
+  List<AppOrganization> get organizations => _organizations;
   List<types.CustomMessage> get messages => _messages;
   bool get isLoadingRooms => _isLoadingRooms;
   bool get isLoadingMessages => _isLoadingMessages;
@@ -63,6 +66,25 @@ class ChatController extends ChangeNotifier {
       _isLoadingRooms = false;
       notifyListeners();
     }
+  }
+
+  Future<void> fetchOrganizations() async {
+    try {
+      final data = await _api.getJson(
+        _api.mobileApiUri({'action': 'get_organizations'}),
+      );
+      final list =
+          (data as Map<String, dynamic>)['organizations'] as List? ?? [];
+      _organizations = list
+          .map((o) => AppOrganization.fromJson(o as Map<String, dynamic>))
+          .toList();
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  String iconForRoom(ChatRoom room) {
+    final org = _organizations.where((o) => o.id == room.squad).firstOrNull;
+    return org?.iconPath ?? AppOrganization.fallbackIcon;
   }
 
   // ── Active chat ────────────────────────────────────────────────────────────
