@@ -1,173 +1,69 @@
-import 'dart:async';
-
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-import 'dart:convert';
-import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive/hive.dart';
-import 'package:tt_mobile_app/custom/Functions.dart';
-import 'package:tt_mobile_app/page/LoginPage.dart';
-import 'package:tt_mobile_app/page/MyHomePage.dart';
-import 'package:html_unescape/html_unescape.dart';
-import 'page/ChatScreen.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+
+import 'controllers/auth_controller.dart';
+import 'firebase_options.dart';
+import 'services/api_client.dart';
+import 'services/auth_service.dart';
+import 'services/notification_service.dart';
+import 'services/storage_service.dart';
+import 'views/access_gate_view.dart';
+import 'views/chat_screen_view.dart';
+import 'views/closed_view.dart';
+import 'views/home_view.dart';
+import 'views/login_view.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-// Unescape HTML entities
-final unescape = HtmlUnescape();
+Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
+  // Background message received — no UI interaction possible here
+}
 
 Future<void> main() async {
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
-  // Load HIVE
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
   final dir = await getApplicationDocumentsDirectory();
   Hive.init(dir.path);
   await Hive.openBox('TTMobileApp');
-  // Load Firebase
-  await Firebase.initializeApp();
-  initNotifications();
-  FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
-  setupFirebaseListeners();
-  // Initialize local notifications
-  initializeNotifications();
-  runApp(const MyApp());
-}
 
-// Handle background messages
-Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
-  print('Background message received: ${message.notification?.title}');
-}
+  final storage = StorageService();
+  final api = ApiClient(storage);
+  final authService = AuthService(storage, api);
+  final authController = AuthController(authService, api, storage);
 
-final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-
-void initNotifications() async {
-  NotificationSettings settings = await _firebaseMessaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
+  final notificationService = NotificationService(
+    navigatorKey: navigatorKey,
+    storage: storage,
+    api: api,
   );
+  authController.setNotificationService(notificationService);
 
-  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-    print('User granted permission');
-  } else {
-    print('User declined or has not accepted permission');
-  }
-}
+  await authController.restoreSession();
+  await notificationService.requestPermissions();
+  await notificationService.initialize();
 
-Future<bool> fetchConfirmTroops(int trooperid) async {
-  try {
-    // Open the Hive box
-    final box = Hive.box('TTMobileApp');
-
-    final response = await http.get(
-      Uri.parse(
-          'https://www.fl501st.com/troop-tracker/mobileapi.php?trooperid=$trooperid&action=get_confirm_events_trooper'),
-      headers: {
-        'API-Key': box.get('apiKey') ?? '',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-
-      // Check if 'troops' exists and is not empty
-      if (data['troops'] != null && (data['troops'] as List).isNotEmpty) {
-        return true; // Troops are present
-      } else {
-        return false; // No troops available
-      }
-    } else {
-      return false; // HTTP error
-    }
-  } catch (e) {
-    return false; // Exception occurred
-  }
-}
-
-void handleForegroundMessage(RemoteMessage message) async {
-  print('Message received: ${message.notification?.title}');
-
-  // Show a push notification when the app is in the foreground
-  const AndroidNotificationDetails androidPlatformChannelSpecifics =
-      AndroidNotificationDetails(
-    'high_importance_channel', // channel ID
-    'High Importance Notifications', // channel name
-    importance: Importance.max,
-    priority: Priority.high,
-    playSound: true,
-  );
-
-  const NotificationDetails platformChannelSpecifics =
-      NotificationDetails(android: androidPlatformChannelSpecifics);
-
-  await flutterLocalNotificationsPlugin.show(
-    0, // Notification ID
-    message.notification?.title ?? 'Notification',
-    message.notification?.body ?? 'You have a new message.',
-    platformChannelSpecifics,
-    payload: message.data.toString(),
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthController>.value(value: authController),
+        Provider<ApiClient>.value(value: api),
+      ],
+      child: TroopTrackerApp(navigatorKey: navigatorKey),
+    ),
   );
 }
 
-void handleMessageOpenedApp(RemoteMessage message) {
-  print('Message clicked: ${message.data['threadId']}');
+class TroopTrackerApp extends StatelessWidget {
+  final GlobalKey<NavigatorState> navigatorKey;
 
-  // Navigate to ChatPage
-  final threadId = int.parse(message.data['threadId']); // Parse thread ID
-  final postId = int.parse(message.data['postId']); // Parse post ID
-  final troopName = message.data['troopName'] ?? 'Unknown'; // Get troop name
-
-  // Navigate to the ChatScreen
-  Future.delayed(const Duration(milliseconds: 500), () {
-    if (navigatorKey.currentContext != null) {
-      Navigator.push(
-        navigatorKey.currentContext!,
-        MaterialPageRoute(
-          builder: (context) => ChatScreen(
-            troopName: troopName,
-            threadId: threadId,
-            postId: postId,
-          ),
-        ),
-      );
-    } else {
-      print('Navigator context is null');
-    }
-  });
-}
-
-void setupFirebaseListeners() {
-  FirebaseMessaging.onMessage.listen(handleForegroundMessage);
-  FirebaseMessaging.onMessageOpenedApp.listen(handleMessageOpenedApp);
-}
-
-FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-
-void initializeNotifications() {
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  const DarwinInitializationSettings initializationSettingsIOS =
-      DarwinInitializationSettings();
-
-  const InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-    iOS: initializationSettingsIOS,
-  );
-
-  flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-  );
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const TroopTrackerApp({super.key, required this.navigatorKey});
 
   @override
   Widget build(BuildContext context) {
@@ -178,90 +74,98 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromRGBO(0, 104, 169, 1.0),
-          brightness: Brightness.dark, // Enforces a dark color scheme
+          brightness: Brightness.dark,
         ),
         useMaterial3: true,
       ),
-      home: const AuthCheck(),
+      initialRoute: '/',
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/':
+            return MaterialPageRoute(
+              builder: (_) => const _AuthGate(),
+            );
+          case '/login':
+            return MaterialPageRoute(builder: (_) => const LoginView());
+          case '/access-gate':
+            return MaterialPageRoute(builder: (_) => const AccessGateView());
+          case '/home':
+            return MaterialPageRoute(builder: (_) => const HomeView());
+          case '/closed':
+            final message = settings.arguments as String?;
+            return MaterialPageRoute(
+              builder: (_) => ClosedView(message: message),
+            );
+          case '/chat':
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args == null) return null;
+            final auth = navigatorKey.currentContext?.read<AuthController>();
+            final api = navigatorKey.currentContext?.read<ApiClient>();
+            if (auth?.currentUser == null || api == null) return null;
+            return MaterialPageRoute(
+              builder: (_) => ChatScreenView(
+                troopName: args['troopName'] as String? ?? '',
+                threadId: args['threadId'] as int,
+                postId: args['postId'] as int,
+                currentUser: auth!.currentUser!,
+                api: api,
+              ),
+            );
+          default:
+            return null;
+        }
+      },
     );
   }
 }
 
-class AuthCheck extends StatelessWidget {
-  const AuthCheck({super.key});
+/// Decides whether to show LoginView or HomeView based on session state.
+class _AuthGate extends StatefulWidget {
+  const _AuthGate();
 
-  Future<bool> isLoggedIn() async {
-    try {
-      // Open the Hive box
-      final box = Hive.box('TTMobileApp');
+  @override
+  State<_AuthGate> createState() => _AuthGateState();
+}
 
-      // Retrieve and decode user data
-      final rawData = box.get('userData');
+class _AuthGateState extends State<_AuthGate> {
+  // Stored to avoid unsafe context.read during dispose()
+  AuthController? _auth;
 
-      // Check if data exists
-      if (rawData == null) {
-        return false; // No data found, user is not logged in
-      }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _auth = context.read<AuthController>();
+      _auth!.addListener(_onAuthChanged);
+      _route();
+    });
+  }
 
-      final userData = json.decode(rawData);
+  @override
+  void dispose() {
+    _auth?.removeListener(_onAuthChanged);
+    super.dispose();
+  }
 
-      // Validate user data structure
-      if (userData['user'] == null || userData['user']['user_id'] == null) {
-        return false; // Invalid data, treat as not logged in
-      }
+  void _onAuthChanged() => _route();
 
-      // Store the apiKey in the Hive box if it exists
-      final apiKey = userData?['apiKey'];
-      if (apiKey != null) {
-        box.put('apiKey', apiKey); // Save the apiKey
-      } else {
-        print('apiKey not found in userData');
-      }
+  void _route() {
+    if (!mounted) return;
+    final auth = context.read<AuthController>();
+    if (auth.isLoading) return;
 
-      // Set user object (assuming _user is a global or class variable)
-      user = types.User(
-        id: userData['user']['user_id'].toString(),
-        firstName: userData['user']['username'], // Set the user's name
-        imageUrl: userData['user']?['avatar_urls']?['s'], // Avatar URL
-      );
-
-      // Call a method to get the token
-      await getToken(userData['user']['user_id'].toString());
-
-      // Return true if all checks pass
-      return true;
-    } catch (e) {
-      // Handle exceptions (e.g., decoding errors)
-      print('Error in isLoggedIn: $e');
-      return false;
+    if (auth.isLoggedIn) {
+      _auth?.removeListener(_onAuthChanged);
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      _auth?.removeListener(_onAuthChanged);
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: isLoggedIn(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return const Scaffold(
-            body: Center(child: Text('Something went wrong.')),
-          );
-        }
-
-        if (snapshot.hasData && snapshot.data == true) {
-          // Already logged in
-          return const MyHomePage(title: 'Troop Tracker');
-        }
-
-        // Not logged in
-        return const LoginPage();
-      },
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

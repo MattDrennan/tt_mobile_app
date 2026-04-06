@@ -1,53 +1,114 @@
 # 501st Legion Troop Tracker Mobile App
-A troop tracker mobile app for the 501st Legion developed for the Florida Garrison. Xenforo (https://xenforo.com/) and Troop Tracker (https://github.com/MattDrennan/501-troop-tracker) is required.
 
-## Use
-You are free to download, modify, and use freely for non-commerical purposes.
+A Flutter mobile app for tracking **Star Wars costuming events (troops)** for the 501st Legion,
+built for the Florida Garrison. Requires a running instance of
+[Troop Tracker](https://github.com/obsidianslicers/trooper-tracker) and
+[XenForo](https://xenforo.com/) for authentication and forum integration.
 
-## How to setup
+**Live apps:**
+- [Android (Google Play)](https://play.google.com/store/apps/details?id=com.drennansoftware.troop_tracker)
+- [iOS (App Store)](https://apps.apple.com/us/app/troop-tracker/id6739888656)
+- [Web](https://www.fl501st.com/troop-tracker/)
 
-<ol>
-	<li>Upload all the files in "xenforo_api_files/" to the root of your Xenforo directory.</li>
-	<li>All SQL data is included with the install of Troop Tracker.</li>
-	<li>Install this Xenforo add-on: https://github.com/MattDrennan/TroopTrackerViewAttachment</li>
-	<li>Create a .env file in the root directory and put this inside:</li>
-	
-	FORUM_URL=https://www.fl501st.com/boards/
-	API_USER=1
-	API_KEY=XENFORO_API_KEY
+---
 
-  <li>Create a key.properties in 'android/':</li>
-  
-	storeFile=release-key.jks
-	storePassword=###
-	keyAlias=#####
-	keyPassword=###
-  
-  <li>Set up a webhook in Xenforo:</li>
-</ol>
+## Features
 
-	Title: Post Insert
-	Description: For push notifications
-	Target URL: https://www.fl501st.com/troop-tracker/script/php/webhook/post_insert.php
-	Events: Send only specific events->post.insert
-	Content type: application/json
-	Enable SSL verification (yes)
-	Webhook is active (yes)
+- OAuth2 PKCE login via XenForo
+- Browse upcoming and past troops (events)
+- Confirm attendance, add guests, and add friends to troops
+- View event details: location, limits, costumes, and roster
+- Real-time chat per troop (powered by XenForo threads)
+- Push notifications via Firebase Cloud Messaging
+- Session persistence via Hive local storage
 
-## Create icons
+---
+
+## Setup
+
+### 1. XenForo API files
+
+Upload all files in `xenforo_api_files/` to the root of your XenForo installation.
+
+### 2. Install the XenForo add-on
+
+Install the [TroopTrackerViewAttachment](https://github.com/MattDrennan/TroopTrackerViewAttachment)
+add-on into XenForo.
+
+### 3. Troop Tracker database
+
+All required SQL is included with the Troop Tracker web app install — no additional SQL needed.
+
+### 4. Environment file
+
+Create `.env` in the project root:
 
 ```
+FORUM_URL=https://www.yourforum.com/boards/
+API_USER=1
+API_KEY=YOUR_XENFORO_API_KEY
+```
+
+### 5. Android signing (release builds only)
+
+Create `android/key.properties`:
+
+```
+storeFile=release-key.jks
+storePassword=YOUR_STORE_PASSWORD
+keyAlias=YOUR_KEY_ALIAS
+keyPassword=YOUR_KEY_PASSWORD
+```
+
+### 6. XenForo webhook (push notifications)
+
+Add a webhook in XenForo admin:
+
+| Field | Value |
+|-------|-------|
+| Title | Post Insert |
+| Target URL | `https://your-domain.com/troop-tracker/script/php/webhook/post_insert.php` |
+| Events | `post.insert` only |
+| Content type | `application/json` |
+| SSL verification | Yes |
+| Active | Yes |
+
+### 7. Firebase
+
+Place your `google-services.json` (Android) and `GoogleService-Info.plist` (iOS) in the
+appropriate platform directories. The app uses Firebase for push notification delivery.
+
+---
+
+## Running the app
+
+```bash
+flutter pub get
+flutter run
+```
+
+## Generating launcher icons
+
+```bash
 dart run flutter_launcher_icons
 ```
 
-## Please contact me with any questions, comments, or concerns
-drennanmattheww@gmail.com
+---
 
-## Android App
-https://play.google.com/store/apps/details?id=com.drennansoftware.troop_tracker
+## Architecture
 
-## iOS App
-https://apps.apple.com/us/app/troop-tracker/id6739888656
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for a full breakdown of the layer structure, providers,
+routing, and testing strategy.
 
-## Visit the live website here:
-https://www.fl501st.com/troop-tracker/
+---
+
+## License
+
+Free to use, modify, and distribute for **non-commercial purposes**.
+
+---
+
+## Contact
+
+Questions, comments, or concerns: drennanmattheww@gmail.com
+

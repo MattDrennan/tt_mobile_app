@@ -50,13 +50,16 @@ dependencies:
   isar_flutter_libs: ^4.0.0-dev.13
   path_provider: ^2.1.5
   url_launcher: ^6.3.1
+  flutter_web_auth_2: ^4.1.0
   intl: ^0.20.1
+  crypto: ^3.0.6
   flutter_bbcode: ^1.5.1
   html_unescape: ^2.0.0
   flutter_launcher_icons: ^0.14.2
   dropdown_search: ^6.0.2
   add_2_calendar: ^3.0.1
   maps_launcher: ^3.0.0+1
+  provider: ^6.1.2
 
 dev_dependencies:
   flutter_test:
