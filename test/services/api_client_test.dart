@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tt_mobile_app/services/api_client.dart';
 import 'package:tt_mobile_app/services/storage_service.dart';
@@ -10,6 +11,16 @@ class _FakeStorage extends StorageService {
 
 void main() {
   late ApiClient api;
+
+  setUpAll(() {
+    dotenv.testLoad(fileInput: '''
+MOBILE_API_URL=https://www.fl501st.com/troop-tracker/mobile-api
+FORUM_API_BASE_URL=https://www.fl501st.com/boards/api
+FORUM_MOBILE_API_URL=https://www.fl501st.com/boards/mobile-api
+API_KEY=test-key
+API_USER=1
+''');
+  });
 
   setUp(() {
     api = ApiClient(_FakeStorage());
@@ -33,9 +44,10 @@ void main() {
       expect(uri.queryParameters['with_posts'], 'true');
     });
 
-    test('troopTrackerUploadUri is a valid URI', () {
-      final uri = api.troopTrackerUploadUri();
+    test('mobileApiUri returns a valid URI for upload actions', () {
+      final uri = api.mobileApiUri({'action': 'upload_photo'});
       expect(uri, isA<Uri>());
+      expect(uri.queryParameters['action'], 'upload_photo');
     });
   });
 }
