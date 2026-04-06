@@ -63,7 +63,13 @@ class _MockAuthController extends AuthController {
 Widget _buildSubject(_MockAuthController controller) {
   return ChangeNotifierProvider<AuthController>.value(
     value: controller,
-    child: const MaterialApp(home: AddGuestView()),
+    child: MaterialApp(
+      home: AddGuestView(
+        troopId: 1,
+        userId: '1',
+        api: ApiClient(_FakeStorage()),
+      ),
+    ),
   );
 }
 

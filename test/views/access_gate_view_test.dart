@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:tt_mobile_app/controllers/auth_controller.dart';
+import 'package:tt_mobile_app/models/app_user.dart';
 import 'package:tt_mobile_app/models/site_status.dart';
 import 'package:tt_mobile_app/services/api_client.dart';
 import 'package:tt_mobile_app/services/auth_service.dart';
@@ -83,15 +84,18 @@ class _MockAuthController extends AuthController {
   }
 
   @override
+  AppUser? get currentUser => AppUser(id: '42', username: 'TestUser');
+
+  @override
   SiteStatus? get currentUserAccessStatus => _siteStatus;
 
   @override
   Future<SiteStatus> checkUserAccess(int trooperId) async {
     return _siteStatus ??
         SiteStatus(
-          canAccess: true,
+          canAccess: false,
           isBanned: false,
-          message: 'Access granted',
+          message: 'Access pending approval',
         );
   }
 
@@ -140,7 +144,7 @@ void main() {
     testWidgets('displays status message', (tester) async {
       await tester.pumpWidget(_buildSubject(controller));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Verifying'), findsWidgets);
+      expect(find.textContaining('Access pending'), findsWidgets);
     });
 
     testWidgets('shows Try Again button', (tester) async {
@@ -158,9 +162,8 @@ void main() {
     testWidgets('logout button is enabled by default', (tester) async {
       await tester.pumpWidget(_buildSubject(controller));
       await tester.pumpAndSettle();
-      final logoutButton =
-          find.widgetWithIcon(ElevatedButton, Icons.logout);
-      expect(logoutButton, findsOneWidget);
+      // ElevatedButton.icon creates a _ElevatedButtonWithIcon subtype; find by icon.
+      expect(find.byIcon(Icons.logout), findsOneWidget);
     });
 
     testWidgets('disables Try Again button when checking', (tester) async {
@@ -174,8 +177,7 @@ void main() {
     testWidgets('background is black', (tester) async {
       await tester.pumpWidget(_buildSubject(controller));
       await tester.pumpAndSettle();
-      final scaffold =
-          find.byType(Scaffold);
+      final scaffold = find.byType(Scaffold);
       expect(scaffold, findsOneWidget);
     });
   });

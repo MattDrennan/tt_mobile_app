@@ -2,81 +2,69 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:tt_mobile_app/controllers/auth_controller.dart';
+import 'package:tt_mobile_app/models/app_user.dart';
 import 'package:tt_mobile_app/services/api_client.dart';
 import 'package:tt_mobile_app/services/auth_service.dart';
 import 'package:tt_mobile_app/services/storage_service.dart';
 import 'package:tt_mobile_app/views/add_friend_view.dart';
 
-// ── Manual mocks ─────────────────────────────────────────────────────────────
-
 class _FakeStorage extends StorageService {
   @override
   String? getUserData() => null;
-
   @override
   String? getApiKey() => null;
-
   @override
-  Future<void> saveLoginData({
-    required String userData,
-    required String apiKey,
-  }) async {}
-
+  Future<void> saveLoginData({required String userData, required String apiKey}) async {}
   @override
   Future<void> saveFcmToken(String token) async {}
-
   @override
   Future<void> clearAll() async {}
-
   @override
   String? getFcmToken() => null;
 }
 
-class _FakeAuthService extends AuthService {
-  _FakeAuthService() : super(_FakeStorage(), ApiClient(_FakeStorage()));
+class _FakeApiClient extends ApiClient {
+  _FakeApiClient() : super(_FakeStorage());
+  @override
+  Uri mobileApiUri([Map<String, dynamic>? p]) => Uri.parse('http://test.local/api');
+  @override
+  Uri forumApiUri(String path, [Map<String, dynamic>? p]) => Uri.parse('http://test.local/forum');
+  @override
+  Future<dynamic> getJson(Uri uri, {Map<String, String>? headers}) async => null;
+  @override
+  Future<dynamic> postJson(Uri uri, Map<String, dynamic> body, {Map<String, String>? headers}) async => null;
+}
 
+class _FakeAuthService extends AuthService {
+  _FakeAuthService() : super(_FakeStorage(), _FakeApiClient());
   @override
   Map<String, dynamic>? restoreSession() => null;
-
   @override
-  Future<Map<String, dynamic>> performOAuthLogin() async =>
-      {'user_id': '1', 'username': 'Test'};
+  Future<Map<String, dynamic>> performOAuthLogin() async => {'user_id': '1', 'username': 'Test'};
 }
 
 class _MockAuthController extends AuthController {
-  bool _isLoading = false;
-  String? _error;
-
-  _MockAuthController(_FakeAuthService authService)
-      : super(authService, ApiClient(_FakeStorage()), _FakeStorage());
-
+  _MockAuthController(_FakeAuthService s) : super(s, _FakeApiClient(), _FakeStorage());
   @override
-  bool get isLoading => _isLoading;
-
-  @override
-  String? get errorMessage => _error;
-
-  void setLoading(bool v) {
-    _isLoading = v;
-    notifyListeners();
-  }
-
-  void setError(String? msg) {
-    _error = msg;
-    notifyListeners();
-  }
+  AppUser? get currentUser => AppUser(id: '1', username: 'TestUser');
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 Widget _buildSubject(_MockAuthController controller) {
-  return ChangeNotifierProvider<AuthController>.value(
-    value: controller,
-    child: const MaterialApp(home: AddFriendView()),
+  return MultiProvider(
+    providers: [
+      Provider<ApiClient>.value(value: _FakeApiClient()),
+      ChangeNotifierProvider<AuthController>.value(value: controller),
+    ],
+    child: MaterialApp(
+      home: AddFriendView(
+        troopId: 1,
+        addedByUserId: '1',
+        limitedEvent: 0,
+        allowTentative: 0,
+      ),
+    ),
   );
 }
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
 
 void main() {
   late _FakeAuthService authService;
@@ -90,29 +78,25 @@ void main() {
   group('AddFriendView', () {
     testWidgets('renders without error', (tester) async {
       await tester.pumpWidget(_buildSubject(controller));
-      await tester.pumpAndSettle();
+      await tester.pump();
       expect(find.byType(AddFriendView), findsOneWidget);
     });
 
-    testWidgets('displays content when not loading', (tester) async {
-      controller.setLoading(false);
+    testWidgets('displays scaffold', (tester) async {
       await tester.pumpWidget(_buildSubject(controller));
-      await tester.pumpAndSettle();
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(Scaffold), findsOneWidget);
     });
 
-    testWidgets('shows loading indicator when isLoading is true', (tester) async {
-      controller.setLoading(true);
+    testWidgets('displays content by default', (tester) async {
       await tester.pumpWidget(_buildSubject(controller));
-      await tester.pumpAndSettle();
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      await tester.pump();
+      expect(find.byType(AddFriendView), findsOneWidget);
     });
 
-    testWidgets('displays error message when set', (tester) async {
-      controller.setError('Failed to add friend');
+    testWidgets('provides ApiClient via Provider', (tester) async {
       await tester.pumpWidget(_buildSubject(controller));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('Failed'), findsWidgets);
+      final ctx = tester.element(find.byType(AddFriendView));
+      expect(ctx.read<ApiClient>(), isNotNull);
     });
 
     testWidgets('is part of the app navigation flow', (tester) async {

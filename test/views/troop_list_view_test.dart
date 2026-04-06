@@ -55,7 +55,7 @@ class _MockTroopController extends TroopController {
   Future<void> fetchorganizations() async {}
 
   @override
-  Future<void> fetchTroops(int orgId) async {}
+  Future<void> fetchTroops([int orgId = 0]) async {}
 
   @override
   String iconForTroop(dynamic troop) => '⚔️';
@@ -64,7 +64,7 @@ class _MockTroopController extends TroopController {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 Widget _buildSubject(_MockTroopController controller) {
-  return ChangeNotifierProvider<ApiClient>.value(
+  return Provider<ApiClient>.value(
     value: ApiClient(_FakeStorage()),
     child: ChangeNotifierProvider<TroopController>.value(
       value: controller,

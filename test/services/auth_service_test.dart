@@ -49,6 +49,10 @@ void main() {
   late _FakeStorage storage;
   late AuthService authService;
 
+  setUpAll(() {
+    dotenv.testLoad(fileInput: 'FORUM_URL=\nOAUTH_CLIENT_ID=');
+  });
+
   setUp(() {
     storage = _FakeStorage();
     authService = AuthService(storage, _FakeApiClient());
@@ -114,8 +118,7 @@ void main() {
     });
 
     test('restores api key if missing from storage', () async {
-      const userData =
-          '{"user": {"user_id": "123"}, "apiKey": "secret"}';
+      const userData = '{"user": {"user_id": "123"}, "apiKey": "secret"}';
       await storage.saveLoginData(userData: userData, apiKey: '');
       final session = authService.restoreSession();
       expect(session, isNotNull);
