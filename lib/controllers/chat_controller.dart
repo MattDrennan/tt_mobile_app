@@ -303,8 +303,18 @@ class ChatController extends ChangeNotifier {
           'XF-Api-User': currentUser.id,
         },
       );
-      return response.statusCode == 200;
+      final success = response.statusCode == 200;
+      if (!success) {
+        _actionError = _extractForumError(
+          response.body,
+          'Failed to block user.',
+        );
+        notifyListeners();
+      }
+      return success;
     } catch (_) {
+      _actionError = 'Failed to block user.';
+      notifyListeners();
       return false;
     }
   }
@@ -321,8 +331,18 @@ class ChatController extends ChangeNotifier {
           'XF-Api-User': currentUser.id,
         },
       );
-      return response.statusCode == 200;
+      final success = response.statusCode == 200;
+      if (!success) {
+        _actionError = _extractForumError(
+          response.body,
+          'Failed to report message.',
+        );
+        notifyListeners();
+      }
+      return success;
     } catch (_) {
+      _actionError = 'Failed to report message.';
+      notifyListeners();
       return false;
     }
   }
