@@ -112,7 +112,7 @@ class _ChatScreenViewState extends State<ChatScreenView> {
         children: [
           ListTile(
             leading: const Icon(Icons.block),
-            title: const Text('Block User'),
+            title: const Text('Block / Unblock User'),
             onTap: () async {
               Navigator.pop(ctx);
               final success = await _controller.blockUser(message.author.id);
@@ -121,7 +121,7 @@ class _ChatScreenViewState extends State<ChatScreenView> {
                 SnackBar(
                   content: Text(
                     success
-                        ? 'User blocked successfully!'
+                        ? 'User block status updated.'
                         : 'Failed to block user.',
                   ),
                 ),
