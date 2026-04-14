@@ -28,7 +28,8 @@ Map<String, dynamic> _chatRoomJson({
       'link': link,
     };
 
-Map<String, dynamic> _organizationJson({int id = 1, String name = 'Makaze Squad'}) =>
+Map<String, dynamic> _organizationJson(
+        {int id = 1, String name = 'Makaze Squad'}) =>
     {'id': id, 'name': name};
 
 // ── Manual mocks ──────────────────────────────────────────────────────────────
@@ -52,10 +53,6 @@ class _MockApiClient extends ApiClient {
   @override
   Uri forumApiUri(String path, [Map<String, dynamic>? queryParameters]) =>
       Uri.parse('https://test.example.com/forum/$path');
-
-  @override
-  Uri forumMobileApiUri([Map<String, dynamic>? queryParameters]) =>
-      Uri.parse('https://test.example.com/forum-mobile');
 
   @override
   Future<dynamic> getJson(Uri uri, {Map<String, String>? headers}) async =>

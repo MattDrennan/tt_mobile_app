@@ -29,7 +29,8 @@ class ApiClient {
 
   // ── URI builders ─────────────────────────────────────────────────────────
 
-  Uri _buildConfiguredUri(String rawUrl, [Map<String, dynamic>? queryParameters]) {
+  Uri _buildConfiguredUri(String rawUrl,
+      [Map<String, dynamic>? queryParameters]) {
     var uri = Uri.parse(rawUrl);
 
     if (Platform.isAndroid &&
@@ -54,14 +55,6 @@ class ApiClient {
   Uri mobileApiUri([Map<String, dynamic>? queryParameters]) {
     final rawUrl = dotenv.env['MOBILE_API_URL'] ??
         'https://www.fl501st.com/troop-tracker/mobile-api';
-    return _buildConfiguredUri(rawUrl, queryParameters);
-  }
-
-  Uri forumMobileApiUri([Map<String, dynamic>? queryParameters]) {
-    final rawUrl = dotenv.env['FORUM_MOBILE_API_URL'];
-    if (rawUrl == null || rawUrl.isEmpty) {
-      throw StateError('FORUM_MOBILE_API_URL is not configured in .env');
-    }
     return _buildConfiguredUri(rawUrl, queryParameters);
   }
 
