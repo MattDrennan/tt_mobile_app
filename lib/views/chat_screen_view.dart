@@ -45,7 +45,10 @@ class _ChatScreenViewState extends State<ChatScreenView> {
       currentUser: widget.currentUser,
     );
     _controller.addListener(_onChanged);
-    _controller.openRoom(widget.threadId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _controller.openRoom(widget.threadId);
+    });
   }
 
   @override
@@ -112,16 +115,20 @@ class _ChatScreenViewState extends State<ChatScreenView> {
         children: [
           ListTile(
             leading: const Icon(Icons.block),
-            title: const Text('Block User'),
+            title: const Text('Block / Unblock User'),
             onTap: () async {
               Navigator.pop(ctx);
-              await _controller.blockUser(message.author.id);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('User blocked successfully!')),
-                );
-              }
+              final success = await _controller.blockUser(message.author.id);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    success
+                        ? 'User block status updated.'
+                        : 'Failed to block user.',
+                  ),
+                ),
+              );
             },
           ),
           ListTile(
@@ -134,20 +141,23 @@ class _ChatScreenViewState extends State<ChatScreenView> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content:
-                            Text('Report reason cannot be empty!')),
+                        content: Text('Report reason cannot be empty!')),
                   );
                 }
                 return;
               }
-              await _controller.reportMessage(message.id, reason);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content:
-                          Text('Message reported successfully!')),
-                );
-              }
+              final success =
+                  await _controller.reportMessage(message.id, reason);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    success
+                        ? 'Message reported successfully!'
+                        : 'Failed to report message.',
+                  ),
+                ),
+              );
             },
           ),
         ],
@@ -168,17 +178,13 @@ class _ChatScreenViewState extends State<ChatScreenView> {
         onAttachmentPressed: _showAttachmentSheet,
         customMessageBuilder: (message, {required int messageWidth}) {
           final isSentByUser = message.author.id == chatUser.id;
-          final htmlContent =
-              message.metadata?['html']?.toString() ?? '';
+          final htmlContent = message.metadata?['html']?.toString() ?? '';
 
           return GestureDetector(
-            onLongPress: () =>
-                _showMessageOptions(message),
+            onLongPress: () => _showMessageOptions(message),
             child: Container(
               padding: const EdgeInsets.all(8.0),
-              color: isSentByUser
-                  ? Colors.blue[500]
-                  : Colors.grey[200],
+              color: isSentByUser ? Colors.blue[500] : Colors.grey[200],
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: isSentByUser
@@ -206,16 +212,14 @@ class _ChatScreenViewState extends State<ChatScreenView> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14.0,
-                            color: isSentByUser
-                                ? Colors.white
-                                : Colors.black,
+                            color: isSentByUser ? Colors.white : Colors.black,
                           ),
                         ),
                         const SizedBox(height: 4.0),
                         Container(
                           padding: const EdgeInsets.all(12.0),
-                          constraints: BoxConstraints(
-                              maxWidth: messageWidth.toDouble()),
+                          constraints:
+                              BoxConstraints(maxWidth: messageWidth.toDouble()),
                           decoration: BoxDecoration(
                             color: isSentByUser
                                 ? Colors.blue[500]
@@ -225,19 +229,17 @@ class _ChatScreenViewState extends State<ChatScreenView> {
                           child: HtmlWidget(
                             htmlContent,
                             textStyle: TextStyle(
-                              color: isSentByUser
-                                  ? Colors.white
-                                  : Colors.black87,
+                              color:
+                                  isSentByUser ? Colors.white : Colors.black87,
                               fontSize: 16.0,
                             ),
                             customWidgetBuilder: (element) {
                               if (element.localName == 'img' &&
                                   element.attributes['src'] != null) {
-                                final imageUrl =
-                                    element.attributes['src']!;
+                                final imageUrl = element.attributes['src']!;
                                 return GestureDetector(
-                                  onTap: () => _openImageViewer(
-                                      context, imageUrl),
+                                  onTap: () =>
+                                      _openImageViewer(context, imageUrl),
                                   child: Image.network(imageUrl),
                                 );
                               }
@@ -288,8 +290,7 @@ class _ChatScreenViewState extends State<ChatScreenView> {
               maxScale: PhotoViewComputedScale.covered * 2,
             ),
             scrollPhysics: const BouncingScrollPhysics(),
-            backgroundDecoration:
-                const BoxDecoration(color: Colors.black),
+            backgroundDecoration: const BoxDecoration(color: Colors.black),
           ),
         ),
       ),
@@ -305,8 +306,8 @@ Future<String?> _showReportDialog(BuildContext context) async {
       title: const Text('Report Message'),
       content: TextField(
         controller: controller,
-        decoration: const InputDecoration(
-            hintText: 'Enter reason for reporting...'),
+        decoration:
+            const InputDecoration(hintText: 'Enter reason for reporting...'),
       ),
       actions: [
         TextButton(

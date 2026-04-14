@@ -18,6 +18,7 @@ import '../services/api_client.dart';
 class ChatController extends ChangeNotifier {
   final ApiClient _api;
   final AppUser currentUser;
+  bool _disposed = false;
 
   // ── Room list state ───────────────────────────────────────────────────────
 
@@ -36,6 +37,11 @@ class ChatController extends ChangeNotifier {
 
   ChatController(this._api, {required this.currentUser});
 
+  void _notifySafe() {
+    if (_disposed) return;
+    notifyListeners();
+  }
+
   // ── Exposed state ──────────────────────────────────────────────────────────
 
   List<ChatRoom> get rooms => _rooms;
@@ -50,7 +56,7 @@ class ChatController extends ChangeNotifier {
 
   Future<void> fetchRooms() async {
     _isLoadingRooms = true;
-    notifyListeners();
+    _notifySafe();
     try {
       final data = await _api.getJson(
         _api.mobileApiUri({
@@ -62,9 +68,10 @@ class ChatController extends ChangeNotifier {
       _rooms = list
           .map((t) => ChatRoom.fromJson(t as Map<String, dynamic>))
           .toList();
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       _isLoadingRooms = false;
-      notifyListeners();
+      _notifySafe();
     }
   }
 
@@ -78,7 +85,7 @@ class ChatController extends ChangeNotifier {
       _organizations = list
           .map((o) => AppOrganization.fromJson(o as Map<String, dynamic>))
           .toList();
-      notifyListeners();
+      _notifySafe();
     } catch (_) {}
   }
 
@@ -111,26 +118,22 @@ class ChatController extends ChangeNotifier {
   Future<void> fetchMessages() async {
     if (_activeThreadId == null) return;
     _isLoadingMessages = true;
-    notifyListeners();
+    _notifySafe();
     try {
       final response = await http.get(
         _api.forumApiUri('threads/$_activeThreadId', {
           'with_posts': true,
           'page': 1,
         }),
-        headers: {
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': dotenv.env['API_USER'].toString(),
-        },
+        headers: _api.forumAuthHeaders,
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         if (data.containsKey('thread') && data.containsKey('posts')) {
           final posts = data['posts'] as List;
-          final fetched = posts
-              .where((p) => p['message_state'] == 'visible')
-              .map((post) {
+          final fetched =
+              posts.where((p) => p['message_state'] == 'visible').map((post) {
             final u = post['User'] as Map<String, dynamic>;
             return types.CustomMessage(
               author: types.User(
@@ -145,10 +148,17 @@ class ChatController extends ChangeNotifier {
           }).toList();
           _messages = fetched.reversed.toList();
         }
+      } else {
+        _actionError = _extractForumError(
+          response.body,
+          'Failed to load messages.',
+        );
       }
-    } catch (_) {} finally {
+    } catch (e) {
+      _actionError = 'Failed to load messages.';
+    } finally {
       _isLoadingMessages = false;
-      notifyListeners();
+      _notifySafe();
     }
   }
 
@@ -165,15 +175,12 @@ class ChatController extends ChangeNotifier {
       metadata: {'html': text},
     );
     _messages.insert(0, optimistic);
-    notifyListeners();
+    _notifySafe();
 
     try {
       final response = await http.post(
         _api.forumApiUri('posts'),
-        headers: {
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': currentUser.id,
-        },
+        headers: _api.forumAuthHeaders,
         body: {
           'thread_id': _activeThreadId.toString(),
           'message': text,
@@ -184,18 +191,18 @@ class ChatController extends ChangeNotifier {
         _removeMessage(optimistic.id);
         _actionError = 'Failed to send message.';
         _isSending = false;
-        notifyListeners();
+        _notifySafe();
         return false;
       }
 
       _isSending = false;
-      notifyListeners();
+      _notifySafe();
       return true;
     } catch (_) {
       _removeMessage(optimistic.id);
       _actionError = 'Failed to send message.';
       _isSending = false;
-      notifyListeners();
+      _notifySafe();
       return false;
     }
   }
@@ -207,12 +214,12 @@ class ChatController extends ChangeNotifier {
     final attachmentKey = await _getAttachmentKey();
     if (attachmentKey == null) {
       _actionError = 'Failed to retrieve attachment key.';
-      notifyListeners();
+      _notifySafe();
       return false;
     }
 
     _isSending = true;
-    notifyListeners();
+    _notifySafe();
 
     try {
       final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
@@ -220,10 +227,7 @@ class ChatController extends ChangeNotifier {
         'POST',
         _api.forumApiUri('attachments'),
       )
-        ..headers.addAll({
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': currentUser.id,
-        })
+        ..headers.addAll(_api.forumAuthHeaders)
         ..files.add(await http.MultipartFile.fromPath(
           'attachment',
           imageFile.path,
@@ -232,21 +236,21 @@ class ChatController extends ChangeNotifier {
         ..fields['key'] = attachmentKey;
 
       final uploadResponse = await request.send();
-      final uploadData = json.decode(await uploadResponse.stream.bytesToString())
-          as Map<String, dynamic>;
+      final uploadData =
+          json.decode(await uploadResponse.stream.bytesToString())
+              as Map<String, dynamic>;
 
       if (uploadResponse.statusCode != 200 ||
           uploadData['attachment'] == null) {
         _actionError = _extractForumError(
             json.encode(uploadData), 'Failed to upload image.');
         _isSending = false;
-        notifyListeners();
+        _notifySafe();
         return false;
       }
 
       final attachment = uploadData['attachment'] as Map<String, dynamic>;
-      final imageUrl =
-          attachment['thumbnail_url'] ?? attachment['view_url'];
+      final imageUrl = attachment['thumbnail_url'] ?? attachment['view_url'];
       final directUrl = attachment['direct_url'];
 
       // Optimistic insert
@@ -257,14 +261,11 @@ class ChatController extends ChangeNotifier {
         metadata: {'html': '<img src=\'$imageUrl\' />'},
       );
       _messages.insert(0, optimistic);
-      notifyListeners();
+      _notifySafe();
 
       final postResponse = await http.post(
         _api.forumApiUri('posts'),
-        headers: {
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': currentUser.id,
-        },
+        headers: _api.forumAuthHeaders,
         body: {
           'thread_id': _activeThreadId.toString(),
           'message': '[IMG]$directUrl[/IMG]',
@@ -276,57 +277,73 @@ class ChatController extends ChangeNotifier {
         _removeMessage(optimistic.id);
         _actionError = 'Failed to send image message.';
         _isSending = false;
-        notifyListeners();
+        _notifySafe();
         return false;
       }
 
       _isSending = false;
-      notifyListeners();
+      _notifySafe();
       return true;
     } catch (e) {
       _actionError = 'Error uploading image: $e';
       _isSending = false;
-      notifyListeners();
+      _notifySafe();
       return false;
     }
   }
 
   Future<bool> blockUser(String targetUserId) async {
     try {
-      final response = await http.post(
-        _api.forumMobileApiUri({
-          'action': 'block_user',
-          'blocker_id': currentUser.id,
+      final response = await http.get(
+        _api.forumApiUri('trooper-api/block-user', {
           'blocked_id': targetUserId,
         }),
-        headers: {'API-Key': _api.mobileApiUri().toString()},
+        headers: _api.forumAuthHeaders,
       );
-      return response.statusCode == 200;
+      final success = response.statusCode == 200;
+      if (!success) {
+        _actionError = _extractForumError(
+          response.body,
+          'Failed to block user.',
+        );
+        _notifySafe();
+      }
+      return success;
     } catch (_) {
+      _actionError = 'Failed to block user.';
+      _notifySafe();
       return false;
     }
   }
 
   Future<bool> reportMessage(String messageId, String reason) async {
     try {
-      final response = await http.post(
-        _api.forumMobileApiUri({
-          'action': 'report_post',
-          'reporter_id': currentUser.id,
-          'message': reason,
+      final response = await http.get(
+        _api.forumApiUri('trooper-api/report-post', {
           'post_id': messageId,
+          'message': reason,
         }),
-        headers: {'API-Key': _api.mobileApiUri().toString()},
+        headers: _api.forumAuthHeaders,
       );
-      return response.statusCode == 200;
+      final success = response.statusCode == 200;
+      if (!success) {
+        _actionError = _extractForumError(
+          response.body,
+          'Failed to report message.',
+        );
+        _notifySafe();
+      }
+      return success;
     } catch (_) {
+      _actionError = 'Failed to report message.';
+      _notifySafe();
       return false;
     }
   }
 
   void clearActionError() {
     _actionError = null;
-    notifyListeners();
+    _notifySafe();
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -339,10 +356,7 @@ class ChatController extends ChangeNotifier {
     try {
       final response = await http.post(
         _api.forumApiUri('attachments/new-key'),
-        headers: {
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': currentUser.id,
-        },
+        headers: _api.forumAuthHeaders,
         body: {
           'type': 'post',
           'context[thread_id]': _activeThreadId.toString(),
@@ -378,6 +392,7 @@ class ChatController extends ChangeNotifier {
   @override
   void dispose() {
     stopPolling();
+    _disposed = true;
     super.dispose();
   }
 }

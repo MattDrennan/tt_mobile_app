@@ -16,7 +16,6 @@ void main() {
     dotenv.testLoad(fileInput: '''
 MOBILE_API_URL=https://www.fl501st.com/troop-tracker/mobile-api
 FORUM_API_BASE_URL=https://www.fl501st.com/boards/api
-FORUM_MOBILE_API_URL=https://www.fl501st.com/boards/mobile-api
 API_KEY=test-key
 API_USER=1
 ''');
@@ -28,7 +27,8 @@ API_USER=1
 
   group('ApiClient URI builders', () {
     test('mobileApiUri builds correct base URI with params', () {
-      final uri = api.mobileApiUri({'action': 'get_troops_by_squad', 'squad': 2});
+      final uri =
+          api.mobileApiUri({'action': 'get_troops_by_squad', 'squad': 2});
       expect(uri.queryParameters['action'], 'get_troops_by_squad');
       expect(uri.queryParameters['squad'], '2');
     });

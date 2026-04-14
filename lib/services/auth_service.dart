@@ -33,7 +33,9 @@ class AuthService {
       'https://redirectmeto.com/ttmobileapp://oauth-callback';
   String get _callbackScheme =>
       dotenv.env['OAUTH_CALLBACK_SCHEME'] ?? 'ttmobileapp';
-  String get _oauthScopes => dotenv.env['OAUTH_SCOPES'] ?? 'user:read';
+  String get _oauthScopes =>
+      dotenv.env['OAUTH_SCOPES'] ??
+      'user:read thread:read thread:write attachment:read attachment:write';
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -80,7 +82,8 @@ class AuthService {
     try {
       return json.decode(body);
     } on FormatException {
-      throw Exception('$operation returned an invalid JSON response from $uri.');
+      throw Exception(
+          '$operation returned an invalid JSON response from $uri.');
     }
   }
 
@@ -109,7 +112,10 @@ class AuthService {
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final message = payload is Map<String, dynamic>
-          ? (payload['error_description'] ?? payload['error'] ?? 'OAuth token exchange failed.').toString()
+          ? (payload['error_description'] ??
+                  payload['error'] ??
+                  'OAuth token exchange failed.')
+              .toString()
           : 'OAuth token exchange failed.';
       throw Exception(message);
     }

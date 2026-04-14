@@ -29,7 +29,8 @@ class ApiClient {
 
   // ── URI builders ─────────────────────────────────────────────────────────
 
-  Uri _buildConfiguredUri(String rawUrl, [Map<String, dynamic>? queryParameters]) {
+  Uri _buildConfiguredUri(String rawUrl,
+      [Map<String, dynamic>? queryParameters]) {
     var uri = Uri.parse(rawUrl);
 
     if (Platform.isAndroid &&
@@ -57,14 +58,6 @@ class ApiClient {
     return _buildConfiguredUri(rawUrl, queryParameters);
   }
 
-  Uri forumMobileApiUri([Map<String, dynamic>? queryParameters]) {
-    final rawUrl = dotenv.env['FORUM_MOBILE_API_URL'];
-    if (rawUrl == null || rawUrl.isEmpty) {
-      throw StateError('FORUM_MOBILE_API_URL is not configured in .env');
-    }
-    return _buildConfiguredUri(rawUrl, queryParameters);
-  }
-
   Uri forumApiUri(String path, [Map<String, dynamic>? queryParameters]) {
     final rawBaseUrl = dotenv.env['FORUM_API_BASE_URL'];
     if (rawBaseUrl == null || rawBaseUrl.isEmpty) {
@@ -86,6 +79,19 @@ class ApiClient {
   Map<String, String> get _apiKeyHeaders => {
         'API-Key': _storage.getApiKey() ?? '',
       };
+
+  /// Authorization headers for XenForo forum API requests using OAuth.
+  ///
+  /// The stored apiKey value is the XenForo OAuth access token returned
+  /// from the forum and persisted via [StorageService]. When present,
+  /// we send it as a Bearer token for all /api/* calls.
+  Map<String, String> get forumAuthHeaders {
+    final token = _storage.getApiKey();
+    if (token == null || token.isEmpty) return const {};
+    return {
+      'Authorization': 'Bearer $token',
+    };
+  }
 
   // ── HTTP helpers ─────────────────────────────────────────────────────────
 
