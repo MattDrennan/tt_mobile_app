@@ -28,8 +28,12 @@ built for the Florida Garrison. Requires a running instance of
 
 ### 1. Install the XenForo add-ons
 
-Install the [TroopTrackerViewAttachment](https://github.com/MattDrennan/TroopTrackerViewAttachment)
-add-on into XenForo.
+In your XenForo installation, install the following Troop Tracker add-ons:
+
+- [TroopTrackerViewAttachment](https://github.com/MattDrennan/TroopTrackerViewAttachment)
+- [TroopTrackerIgnoreUsers](https://github.com/MattDrennan/TroopTrackerIgnoreUsers)
+- [TroopTrackerUserGroups](https://github.com/MattDrennan/TroopTrackerUserGroups)
+- [Troop Tracker - Upgrade Stats](https://github.com/MattDrennan/Troop-Tracker---Upgrade-Stats)
 
 ### 2. Troop Tracker database
 
