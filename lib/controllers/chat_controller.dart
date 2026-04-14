@@ -119,10 +119,7 @@ class ChatController extends ChangeNotifier {
           'with_posts': true,
           'page': 1,
         }),
-        headers: {
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': dotenv.env['API_USER'].toString(),
-        },
+        headers: _api.forumAuthHeaders,
       );
 
       if (response.statusCode == 200) {
@@ -145,8 +142,14 @@ class ChatController extends ChangeNotifier {
           }).toList();
           _messages = fetched.reversed.toList();
         }
+      } else {
+        _actionError = _extractForumError(
+          response.body,
+          'Failed to load messages.',
+        );
       }
-    } catch (_) {
+    } catch (e) {
+      _actionError = 'Failed to load messages.';
     } finally {
       _isLoadingMessages = false;
       notifyListeners();
@@ -171,10 +174,7 @@ class ChatController extends ChangeNotifier {
     try {
       final response = await http.post(
         _api.forumApiUri('posts'),
-        headers: {
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': currentUser.id,
-        },
+        headers: _api.forumAuthHeaders,
         body: {
           'thread_id': _activeThreadId.toString(),
           'message': text,
@@ -221,10 +221,7 @@ class ChatController extends ChangeNotifier {
         'POST',
         _api.forumApiUri('attachments'),
       )
-        ..headers.addAll({
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': currentUser.id,
-        })
+        ..headers.addAll(_api.forumAuthHeaders)
         ..files.add(await http.MultipartFile.fromPath(
           'attachment',
           imageFile.path,
@@ -262,10 +259,7 @@ class ChatController extends ChangeNotifier {
 
       final postResponse = await http.post(
         _api.forumApiUri('posts'),
-        headers: {
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': currentUser.id,
-        },
+        headers: _api.forumAuthHeaders,
         body: {
           'thread_id': _activeThreadId.toString(),
           'message': '[IMG]$directUrl[/IMG]',
@@ -298,10 +292,7 @@ class ChatController extends ChangeNotifier {
         _api.forumApiUri('trooper-api/block-user', {
           'blocked_id': targetUserId,
         }),
-        headers: {
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': currentUser.id,
-        },
+        headers: _api.forumAuthHeaders,
       );
       final success = response.statusCode == 200;
       if (!success) {
@@ -326,10 +317,7 @@ class ChatController extends ChangeNotifier {
           'post_id': messageId,
           'message': reason,
         }),
-        headers: {
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': currentUser.id,
-        },
+        headers: _api.forumAuthHeaders,
       );
       final success = response.statusCode == 200;
       if (!success) {
@@ -362,10 +350,7 @@ class ChatController extends ChangeNotifier {
     try {
       final response = await http.post(
         _api.forumApiUri('attachments/new-key'),
-        headers: {
-          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
-          'XF-Api-User': currentUser.id,
-        },
+        headers: _api.forumAuthHeaders,
         body: {
           'type': 'post',
           'context[thread_id]': _activeThreadId.toString(),

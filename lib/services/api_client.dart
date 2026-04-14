@@ -80,6 +80,19 @@ class ApiClient {
         'API-Key': _storage.getApiKey() ?? '',
       };
 
+  /// Authorization headers for XenForo forum API requests using OAuth.
+  ///
+  /// The stored apiKey value is the XenForo OAuth access token returned
+  /// from the forum and persisted via [StorageService]. When present,
+  /// we send it as a Bearer token for all /api/* calls.
+  Map<String, String> get forumAuthHeaders {
+    final token = _storage.getApiKey();
+    if (token == null || token.isEmpty) return const {};
+    return {
+      'Authorization': 'Bearer $token',
+    };
+  }
+
   // ── HTTP helpers ─────────────────────────────────────────────────────────
 
   /// Performs an authenticated GET and returns decoded JSON.
