@@ -26,20 +26,16 @@ built for the Florida Garrison. Requires a running instance of
 
 ## Setup
 
-### 1. XenForo API files
-
-Upload all files in `xenforo_api_files/` to the root of your XenForo installation.
-
-### 2. Install the XenForo add-on
+### 1. Install the XenForo add-ons
 
 Install the [TroopTrackerViewAttachment](https://github.com/MattDrennan/TroopTrackerViewAttachment)
 add-on into XenForo.
 
-### 3. Troop Tracker database
+### 2. Troop Tracker database
 
 All required SQL is included with the Troop Tracker web app install — no additional SQL needed.
 
-### 4. Environment file
+### 3. Environment file
 
 Create `.env` in the project root:
 
@@ -49,7 +45,7 @@ API_USER=1
 API_KEY=YOUR_XENFORO_API_KEY
 ```
 
-### 5. Android signing (release builds only)
+### 4. Android signing (release builds only)
 
 Create `android/key.properties`:
 
@@ -60,7 +56,7 @@ keyAlias=YOUR_KEY_ALIAS
 keyPassword=YOUR_KEY_PASSWORD
 ```
 
-### 6. XenForo webhook (push notifications)
+### 5. XenForo webhook (push notifications)
 
 Add a webhook in XenForo admin:
 
@@ -73,7 +69,7 @@ Add a webhook in XenForo admin:
 | SSL verification | Yes |
 | Active | Yes |
 
-### 7. Firebase
+### 6. Firebase
 
 Place your `google-services.json` (Android) and `GoogleService-Info.plist` (iOS) in the
 appropriate platform directories. The app uses Firebase for push notification delivery.

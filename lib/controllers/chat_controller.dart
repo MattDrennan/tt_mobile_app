@@ -62,7 +62,8 @@ class ChatController extends ChangeNotifier {
       _rooms = list
           .map((t) => ChatRoom.fromJson(t as Map<String, dynamic>))
           .toList();
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       _isLoadingRooms = false;
       notifyListeners();
     }
@@ -128,9 +129,8 @@ class ChatController extends ChangeNotifier {
         final data = json.decode(response.body) as Map<String, dynamic>;
         if (data.containsKey('thread') && data.containsKey('posts')) {
           final posts = data['posts'] as List;
-          final fetched = posts
-              .where((p) => p['message_state'] == 'visible')
-              .map((post) {
+          final fetched =
+              posts.where((p) => p['message_state'] == 'visible').map((post) {
             final u = post['User'] as Map<String, dynamic>;
             return types.CustomMessage(
               author: types.User(
@@ -146,7 +146,8 @@ class ChatController extends ChangeNotifier {
           _messages = fetched.reversed.toList();
         }
       }
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       _isLoadingMessages = false;
       notifyListeners();
     }
@@ -232,8 +233,9 @@ class ChatController extends ChangeNotifier {
         ..fields['key'] = attachmentKey;
 
       final uploadResponse = await request.send();
-      final uploadData = json.decode(await uploadResponse.stream.bytesToString())
-          as Map<String, dynamic>;
+      final uploadData =
+          json.decode(await uploadResponse.stream.bytesToString())
+              as Map<String, dynamic>;
 
       if (uploadResponse.statusCode != 200 ||
           uploadData['attachment'] == null) {
@@ -245,8 +247,7 @@ class ChatController extends ChangeNotifier {
       }
 
       final attachment = uploadData['attachment'] as Map<String, dynamic>;
-      final imageUrl =
-          attachment['thumbnail_url'] ?? attachment['view_url'];
+      final imageUrl = attachment['thumbnail_url'] ?? attachment['view_url'];
       final directUrl = attachment['direct_url'];
 
       // Optimistic insert
@@ -293,13 +294,14 @@ class ChatController extends ChangeNotifier {
 
   Future<bool> blockUser(String targetUserId) async {
     try {
-      final response = await http.post(
-        _api.forumMobileApiUri({
-          'action': 'block_user',
-          'blocker_id': currentUser.id,
+      final response = await http.get(
+        _api.forumApiUri('trooper-api/block-user', {
           'blocked_id': targetUserId,
         }),
-        headers: {'API-Key': _api.mobileApiUri().toString()},
+        headers: {
+          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
+          'XF-Api-User': currentUser.id,
+        },
       );
       return response.statusCode == 200;
     } catch (_) {
@@ -309,14 +311,15 @@ class ChatController extends ChangeNotifier {
 
   Future<bool> reportMessage(String messageId, String reason) async {
     try {
-      final response = await http.post(
-        _api.forumMobileApiUri({
-          'action': 'report_post',
-          'reporter_id': currentUser.id,
-          'message': reason,
+      final response = await http.get(
+        _api.forumApiUri('trooper-api/report-post', {
           'post_id': messageId,
+          'message': reason,
         }),
-        headers: {'API-Key': _api.mobileApiUri().toString()},
+        headers: {
+          'XF-Api-Key': dotenv.env['API_KEY'].toString(),
+          'XF-Api-User': currentUser.id,
+        },
       );
       return response.statusCode == 200;
     } catch (_) {
