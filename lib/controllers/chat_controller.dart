@@ -18,6 +18,7 @@ import '../services/api_client.dart';
 class ChatController extends ChangeNotifier {
   final ApiClient _api;
   final AppUser currentUser;
+  bool _disposed = false;
 
   // ── Room list state ───────────────────────────────────────────────────────
 
@@ -36,6 +37,11 @@ class ChatController extends ChangeNotifier {
 
   ChatController(this._api, {required this.currentUser});
 
+  void _notifySafe() {
+    if (_disposed) return;
+    notifyListeners();
+  }
+
   // ── Exposed state ──────────────────────────────────────────────────────────
 
   List<ChatRoom> get rooms => _rooms;
@@ -50,7 +56,7 @@ class ChatController extends ChangeNotifier {
 
   Future<void> fetchRooms() async {
     _isLoadingRooms = true;
-    notifyListeners();
+    _notifySafe();
     try {
       final data = await _api.getJson(
         _api.mobileApiUri({
@@ -65,7 +71,7 @@ class ChatController extends ChangeNotifier {
     } catch (_) {
     } finally {
       _isLoadingRooms = false;
-      notifyListeners();
+      _notifySafe();
     }
   }
 
@@ -79,7 +85,7 @@ class ChatController extends ChangeNotifier {
       _organizations = list
           .map((o) => AppOrganization.fromJson(o as Map<String, dynamic>))
           .toList();
-      notifyListeners();
+      _notifySafe();
     } catch (_) {}
   }
 
@@ -112,7 +118,7 @@ class ChatController extends ChangeNotifier {
   Future<void> fetchMessages() async {
     if (_activeThreadId == null) return;
     _isLoadingMessages = true;
-    notifyListeners();
+    _notifySafe();
     try {
       final response = await http.get(
         _api.forumApiUri('threads/$_activeThreadId', {
@@ -152,7 +158,7 @@ class ChatController extends ChangeNotifier {
       _actionError = 'Failed to load messages.';
     } finally {
       _isLoadingMessages = false;
-      notifyListeners();
+      _notifySafe();
     }
   }
 
@@ -169,7 +175,7 @@ class ChatController extends ChangeNotifier {
       metadata: {'html': text},
     );
     _messages.insert(0, optimistic);
-    notifyListeners();
+    _notifySafe();
 
     try {
       final response = await http.post(
@@ -185,18 +191,18 @@ class ChatController extends ChangeNotifier {
         _removeMessage(optimistic.id);
         _actionError = 'Failed to send message.';
         _isSending = false;
-        notifyListeners();
+        _notifySafe();
         return false;
       }
 
       _isSending = false;
-      notifyListeners();
+      _notifySafe();
       return true;
     } catch (_) {
       _removeMessage(optimistic.id);
       _actionError = 'Failed to send message.';
       _isSending = false;
-      notifyListeners();
+      _notifySafe();
       return false;
     }
   }
@@ -208,12 +214,12 @@ class ChatController extends ChangeNotifier {
     final attachmentKey = await _getAttachmentKey();
     if (attachmentKey == null) {
       _actionError = 'Failed to retrieve attachment key.';
-      notifyListeners();
+      _notifySafe();
       return false;
     }
 
     _isSending = true;
-    notifyListeners();
+    _notifySafe();
 
     try {
       final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
@@ -239,7 +245,7 @@ class ChatController extends ChangeNotifier {
         _actionError = _extractForumError(
             json.encode(uploadData), 'Failed to upload image.');
         _isSending = false;
-        notifyListeners();
+        _notifySafe();
         return false;
       }
 
@@ -255,7 +261,7 @@ class ChatController extends ChangeNotifier {
         metadata: {'html': '<img src=\'$imageUrl\' />'},
       );
       _messages.insert(0, optimistic);
-      notifyListeners();
+      _notifySafe();
 
       final postResponse = await http.post(
         _api.forumApiUri('posts'),
@@ -271,17 +277,17 @@ class ChatController extends ChangeNotifier {
         _removeMessage(optimistic.id);
         _actionError = 'Failed to send image message.';
         _isSending = false;
-        notifyListeners();
+        _notifySafe();
         return false;
       }
 
       _isSending = false;
-      notifyListeners();
+      _notifySafe();
       return true;
     } catch (e) {
       _actionError = 'Error uploading image: $e';
       _isSending = false;
-      notifyListeners();
+      _notifySafe();
       return false;
     }
   }
@@ -300,12 +306,12 @@ class ChatController extends ChangeNotifier {
           response.body,
           'Failed to block user.',
         );
-        notifyListeners();
+        _notifySafe();
       }
       return success;
     } catch (_) {
       _actionError = 'Failed to block user.';
-      notifyListeners();
+      _notifySafe();
       return false;
     }
   }
@@ -325,19 +331,19 @@ class ChatController extends ChangeNotifier {
           response.body,
           'Failed to report message.',
         );
-        notifyListeners();
+        _notifySafe();
       }
       return success;
     } catch (_) {
       _actionError = 'Failed to report message.';
-      notifyListeners();
+      _notifySafe();
       return false;
     }
   }
 
   void clearActionError() {
     _actionError = null;
-    notifyListeners();
+    _notifySafe();
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -386,6 +392,7 @@ class ChatController extends ChangeNotifier {
   @override
   void dispose() {
     stopPolling();
+    _disposed = true;
     super.dispose();
   }
 }

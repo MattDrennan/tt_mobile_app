@@ -45,7 +45,10 @@ class _ChatScreenViewState extends State<ChatScreenView> {
       currentUser: widget.currentUser,
     );
     _controller.addListener(_onChanged);
-    _controller.openRoom(widget.threadId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _controller.openRoom(widget.threadId);
+    });
   }
 
   @override
