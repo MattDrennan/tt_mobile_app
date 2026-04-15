@@ -26,8 +26,7 @@ class EventDetail {
 
   List<dynamic> get shifts => List<dynamic>.from(_data['shifts'] ?? []);
 
-  bool get isLimited =>
-      _data['isLimited'] == true || _data['isLimited'] == 1;
+  bool get isLimited => _data['isLimited'] == true || _data['isLimited'] == 1;
 
   bool get guestsAllowed {
     final v = _data['guests_allowed'];
@@ -57,6 +56,28 @@ class EventDetail {
   String? get limitTotal => _data['limitTotal']?.toString();
   String? get limitClubs => _data['limitClubs']?.toString();
   String? get limitAll => _data['limitAll']?.toString();
+
+  bool get missionBriefRequired {
+    final v = _data['missionBriefRequired'] ?? _data['mission_brief_required'];
+    if (v is bool) return v;
+    if (v is num) return v.toInt() == 1;
+    if (v is String) {
+      final lower = v.toLowerCase();
+      return lower == '1' || lower == 'true';
+    }
+    return false;
+  }
+
+  bool get hasMissionBriefAck {
+    final v = _data['hasMissionBriefAck'] ?? _data['has_mission_brief_ack'];
+    if (v is bool) return v;
+    if (v is num) return v.toInt() == 1;
+    if (v is String) {
+      final lower = v.toLowerCase();
+      return lower == '1' || lower == 'true';
+    }
+    return false;
+  }
 
   // ── Business logic helpers ────────────────────────────────────────────────
 
