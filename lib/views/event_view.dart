@@ -166,8 +166,7 @@ class _EventViewState extends State<EventView> {
     if (threadId == null || postId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content:
-                Text('No discussion thread is available for this troop.')),
+            content: Text('No discussion thread is available for this troop.')),
       );
       return;
     }
@@ -200,10 +199,7 @@ class _EventViewState extends State<EventView> {
 
     return Scaffold(
       appBar: buildAppBar(
-          context,
-          event != null
-              ? _unescape.convert(event.name)
-              : ''),
+          context, event != null ? _unescape.convert(event.name) : ''),
       body: _controller.isLoading
           ? const Center(child: CircularProgressIndicator())
           : event == null
@@ -227,19 +223,15 @@ class _EventViewState extends State<EventView> {
                             label: 'Start',
                             value: _formatDate(event.dateStart)),
                         InfoRow(
-                            label: 'End',
-                            value: _formatDate(event.dateEnd)),
+                            label: 'End', value: _formatDate(event.dateEnd)),
                       ] else ...[
                         const Text('Shifts',
                             style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold)),
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
                         ...event.shifts.map((shift) => Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 2),
-                              child: Text(
-                                  shift['display']?.toString() ?? '',
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Text(shift['display']?.toString() ?? '',
                                   style: const TextStyle(fontSize: 14)),
                             )),
                         const Divider(),
@@ -262,12 +254,10 @@ class _EventViewState extends State<EventView> {
                           value: event.numberOfAttend?.toString() ?? 'N/A'),
                       InfoRow(
                           label: 'Requested',
-                          value:
-                              event.requestedNumber?.toString() ?? 'N/A'),
+                          value: event.requestedNumber?.toString() ?? 'N/A'),
                       InfoRow(
                           label: 'Requested Characters',
-                          value:
-                              event.requestedCharacter?.toString() ?? 'N/A'),
+                          value: event.requestedCharacter?.toString() ?? 'N/A'),
                       const SizedBox(height: 10),
 
                       // Amenities
@@ -276,8 +266,7 @@ class _EventViewState extends State<EventView> {
                               fontSize: 18, fontWeight: FontWeight.bold)),
                       const Divider(),
                       InfoRow(
-                          label: 'Restrooms',
-                          value: event.amenities ?? 'N/A'),
+                          label: 'Restrooms', value: event.amenities ?? 'N/A'),
                       InfoRow(
                           label: 'Secure Changing Area',
                           value: event.secureChanging ? 'Yes' : 'No'),
@@ -301,11 +290,10 @@ class _EventViewState extends State<EventView> {
                               fontSize: 18, fontWeight: FontWeight.bold)),
                       const Divider(),
                       InfoRow(
-                          label: 'Referred By',
-                          value: event.referred ?? ''),
+                          label: 'Referred By', value: event.referred ?? ''),
                       const SizedBox(height: 10),
 
-                      // Comments
+                      // Mission Brief / Comments
                       const Text('Additional Information',
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold)),
@@ -314,14 +302,50 @@ class _EventViewState extends State<EventView> {
                         data: _unescape.convert(event.comments ?? ''),
                         stylesheet: _bbStylesheet,
                       ),
+                      if (event.missionBriefRequired) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: event.hasMissionBriefAck
+                                ? Colors.green[700]
+                                : Colors.amber[800],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            event.hasMissionBriefAck
+                                ? 'You have acknowledged this mission brief. You may sign up for available shifts below.'
+                                : 'You must review and acknowledge the mission brief before you can sign up for this deployment, add friends, or add guests.',
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ),
+                        if (!event.hasMissionBriefAck) ...[
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _controller.isActionInProgress
+                                  ? null
+                                  : () async {
+                                      await _controller
+                                          .acknowledgeMissionBrief();
+                                    },
+                              icon: const Icon(Icons.check),
+                              label: const Text(
+                                'I have read and understand the mission brief',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
 
                       // Limited event
                       if (event.isLimited) ...[
                         const SizedBox(height: 10),
                         const Text('Limited Event Info',
                             style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold)),
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                         const Divider(),
                         LimitRow(
                           total: event.limitTotal != null
@@ -369,9 +393,8 @@ class _EventViewState extends State<EventView> {
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 8),
                                   child: FilterChip(
-                                    label: Text(
-                                        shift['display']?.toString() ??
-                                            'Shift'),
+                                    label: Text(shift['display']?.toString() ??
+                                        'Shift'),
                                     selected: selected,
                                     onSelected: (_) =>
                                         _controller.setRosterShiftFilter(id),
@@ -394,13 +417,11 @@ class _EventViewState extends State<EventView> {
                         const SizedBox(height: 10),
                         const Text('Event Photos',
                             style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold)),
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 10),
                         GridView.builder(
                           shrinkWrap: true,
-                          physics:
-                              const NeverScrollableScrollPhysics(),
+                          physics: const NeverScrollableScrollPhysics(),
                           itemCount: _controller.photoList.length,
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
@@ -417,8 +438,7 @@ class _EventViewState extends State<EventView> {
                                 builder: (_) => AlertDialog(
                                   title: Text(
                                       'Uploaded by ${photo['uploaded_by']}'),
-                                  content:
-                                      Image.network(photo['full_url']),
+                                  content: Image.network(photo['full_url']),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
@@ -467,23 +487,20 @@ class _EventViewState extends State<EventView> {
                         const SizedBox(height: 6),
                         const Text('My Friends',
                             style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold)),
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 6),
                         ..._controller.myFriends.map((friend) {
                           final friendTrooperId =
                               (friend['trooper_id'] as num).toInt();
-                          final shiftId =
-                              (friend['shift_id'] as num).toInt();
-                          final name = friend['trooper_name']?.toString() ??
-                              'Unknown';
+                          final shiftId = (friend['shift_id'] as num).toInt();
+                          final name =
+                              friend['trooper_name']?.toString() ?? 'Unknown';
                           final status =
                               friend['status_formatted']?.toString() ?? '';
                           final shiftDisplay =
                               friend['shift_display']?.toString() ?? '';
                           return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Row(
                               children: [
                                 Expanded(
@@ -492,8 +509,7 @@ class _EventViewState extends State<EventView> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(name,
-                                          style: const TextStyle(
-                                              fontSize: 14)),
+                                          style: const TextStyle(fontSize: 14)),
                                       if (event.shifts.length > 1)
                                         Text(shiftDisplay,
                                             style: const TextStyle(
@@ -511,8 +527,8 @@ class _EventViewState extends State<EventView> {
                                   TextButton(
                                     style: TextButton.styleFrom(
                                         foregroundColor: Colors.red),
-                                    onPressed: () => _cancelFriend(
-                                        friendTrooperId, shiftId),
+                                    onPressed: () =>
+                                        _cancelFriend(friendTrooperId, shiftId),
                                     child: const Text('Cancel'),
                                   ),
                                 ],
@@ -528,20 +544,17 @@ class _EventViewState extends State<EventView> {
                         const SizedBox(height: 6),
                         const Text('My Guests',
                             style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold)),
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 6),
                         ..._controller.myGuests.map((guest) {
                           final guestId = (guest['id'] as num).toInt();
-                          final name =
-                              guest['name']?.toString() ?? 'Unknown';
+                          final name = guest['name']?.toString() ?? 'Unknown';
                           final status =
                               guest['status_formatted']?.toString() ?? '';
                           final shiftDisplay =
                               guest['shift_display']?.toString() ?? '';
                           return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Row(
                               children: [
                                 Expanded(
@@ -550,8 +563,7 @@ class _EventViewState extends State<EventView> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(name,
-                                          style: const TextStyle(
-                                              fontSize: 14)),
+                                          style: const TextStyle(fontSize: 14)),
                                       if (event.shifts.length > 1)
                                         Text(shiftDisplay,
                                             style: const TextStyle(
@@ -626,13 +638,30 @@ class _EventViewState extends State<EventView> {
 
   Widget _buildMultiShiftControls(
       EventDetail event, AuthController auth, ApiClient api) {
+    final requiresAck = event.missionBriefRequired;
+    final hasAck = event.hasMissionBriefAck;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Shifts',
-            style:
-                TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const Divider(),
+        if (requiresAck && !hasAck) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.amber[800],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              'Review and acknowledge the mission brief above to enable sign-ups and adding friends/guests.',
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         ...event.shifts.map((shift) {
           final shiftId = (shift['id'] as num).toInt();
           final status = _controller.myShiftStatuses[shiftId];
@@ -647,31 +676,32 @@ class _EventViewState extends State<EventView> {
                 ),
                 if (isSignedUp) ...[
                   Text(status,
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.green)),
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.green)),
                   const SizedBox(width: 8),
                   if (!event.isManualSelection)
                     TextButton(
-                      style: TextButton.styleFrom(
-                          foregroundColor: Colors.red),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
                       onPressed: () => _cancelShift(shiftId),
                       child: const Text('Cancel'),
                     ),
                 ] else
                   ElevatedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SignUpView(
-                          troopId: widget.troopId,
-                          userId: auth.currentUser?.id ?? '',
-                          limitedEvent: event.limitedEvent,
-                          allowTentative: event.allowTentative,
-                          api: api,
-                          shifts: [shift],
-                        ),
-                      ),
-                    ).then((_) => _controller.refreshAll()),
+                    onPressed: (requiresAck && !hasAck)
+                        ? null
+                        : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SignUpView(
+                                  troopId: widget.troopId,
+                                  userId: auth.currentUser?.id ?? '',
+                                  limitedEvent: event.limitedEvent,
+                                  allowTentative: event.allowTentative,
+                                  api: api,
+                                  shifts: [shift],
+                                ),
+                              ),
+                            ).then((_) => _controller.refreshAll()),
                     child: const Text('Sign Up'),
                   ),
               ],
@@ -680,7 +710,7 @@ class _EventViewState extends State<EventView> {
         }),
         const SizedBox(height: 8),
         if (_controller.isInRoster) ...[
-          if (event.friendsAllowed)
+          if (event.friendsAllowed && (!requiresAck || hasAck))
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -700,7 +730,7 @@ class _EventViewState extends State<EventView> {
                 ).then((_) => _controller.refreshAll()),
               ),
             ),
-          if (event.guestsAllowed) ...[
+          if (event.guestsAllowed && (!requiresAck || hasAck)) ...[
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -728,7 +758,30 @@ class _EventViewState extends State<EventView> {
 
   Widget _buildSingleShiftControls(
       EventDetail event, AuthController auth, ApiClient api) {
+    final requiresAck = event.missionBriefRequired;
+    final hasAck = event.hasMissionBriefAck;
+
     if (!_controller.isInRoster) {
+      if (requiresAck && !hasAck) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber[800],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Review and acknowledge the mission brief above to enable sign-ups.',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+          ],
+        );
+      }
+
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton(
@@ -756,13 +809,12 @@ class _EventViewState extends State<EventView> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: _cancelSignup,
               child: const Text('Cancel Signup'),
             ),
           ),
-        if (event.friendsAllowed) ...[
+        if (event.friendsAllowed && (!requiresAck || hasAck)) ...[
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
@@ -784,7 +836,7 @@ class _EventViewState extends State<EventView> {
             ),
           ),
         ],
-        if (event.guestsAllowed) ...[
+        if (event.guestsAllowed && (!requiresAck || hasAck)) ...[
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
@@ -819,8 +871,8 @@ class _EventViewState extends State<EventView> {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            headingRowColor: WidgetStateProperty.resolveWith(
-                (states) => Colors.grey[800]),
+            headingRowColor:
+                WidgetStateProperty.resolveWith((states) => Colors.grey[800]),
             columns: const [
               DataColumn(label: Text('Status')),
               DataColumn(label: Text('Trooper Name')),
@@ -842,8 +894,7 @@ class _EventViewState extends State<EventView> {
                         : isStandBy
                             ? Colors.orange
                             : null,
-                decoration:
-                    isCanceled ? TextDecoration.lineThrough : null,
+                decoration: isCanceled ? TextDecoration.lineThrough : null,
               );
               return DataRow(cells: [
                 DataCell(Text(m.statusFormatted, style: style)),

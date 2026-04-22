@@ -225,7 +225,12 @@ class EventController extends ChangeNotifier {
       );
       final success = (data as Map<String, dynamic>)['success'] == true;
       if (success) {
-        await Future.wait([_fetchEvent(), _fetchMyFriends(), _fetchMyGuests(), _checkInRoster()]);
+        await Future.wait([
+          _fetchEvent(),
+          _fetchMyFriends(),
+          _fetchMyGuests(),
+          _checkInRoster()
+        ]);
       } else {
         _actionError = 'Something went wrong.';
       }
@@ -325,9 +330,9 @@ class EventController extends ChangeNotifier {
       final result = json.decode(body.body) as Map<String, dynamic>;
       final success = body.statusCode == 200 && result['success'] == true;
       if (!success) {
-        _actionError = result['message']?.toString()
-            ?? result['error']?.toString()
-            ?? 'Upload failed.';
+        _actionError = result['message']?.toString() ??
+            result['error']?.toString() ??
+            'Upload failed.';
       } else {
         await _fetchPhotos();
       }
@@ -335,6 +340,36 @@ class EventController extends ChangeNotifier {
       return success;
     } catch (e) {
       _actionError = 'Upload error: $e';
+      _endAction();
+      return false;
+    }
+  }
+
+  Future<bool> acknowledgeMissionBrief() async {
+    final event = _event;
+    if (event == null) return false;
+
+    _startAction();
+    try {
+      final data = await _api.getJson(
+        _api.mobileApiUri({
+          'action': 'ack_mission_brief',
+          'trooperid': userId,
+          'troopid': eventId,
+        }),
+      );
+      final map = data as Map<String, dynamic>;
+      final success = map['success'] == true;
+      if (success) {
+        await _fetchEvent();
+      } else {
+        _actionError = map['message']?.toString() ??
+            'Unable to acknowledge mission brief.';
+      }
+      _endAction();
+      return success;
+    } catch (e) {
+      _actionError = e.toString();
       _endAction();
       return false;
     }
