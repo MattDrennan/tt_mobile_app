@@ -130,6 +130,13 @@ class ApiClient {
     return json.decode(response.body);
   }
 
+  /// Fetches a forum thread with its posts. Extracted so FakeApiClient can
+  /// override it for screenshot tests without touching the HTTP layer.
+  Future<dynamic> getThread(int threadId, {int page = 1}) => getJson(
+        forumApiUri('threads/$threadId', {'with_posts': true, 'page': page}),
+        headers: forumAuthHeaders,
+      );
+
   /// Performs a multipart POST using the mobile API-Key header.
   Future<http.StreamedResponse> postMultipart(
     Uri uri, {
