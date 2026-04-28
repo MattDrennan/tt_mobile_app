@@ -93,6 +93,55 @@ flutter run
 dart run flutter_launcher_icons
 ```
 
+## Taking screenshots
+
+Automated screenshots use an integration test that runs the app with fixture data (no real credentials or network needed). Screenshots are saved to `screenshots/` in the project root.
+
+**1. Start a simulator**
+
+```bash
+# List available emulators
+flutter emulators
+
+# Launch one (iOS example)
+flutter emulators --launch apple_ios_simulator
+
+# Or list already-running devices
+flutter devices
+```
+
+**2. Run the screenshot script**
+
+```bash
+# Auto-detects the running simulator
+scripts/take_screenshots.sh
+
+# Or target a specific device
+scripts/take_screenshots.sh "iPhone 16 Pro"
+scripts/take_screenshots.sh emulator-5554
+```
+
+The script captures 7 screens:
+
+| File | Screen |
+|------|--------|
+| `00_login.png` | Login |
+| `01_home.png` | Home |
+| `02_troop_list.png` | Troop list with org filter buttons |
+| `03_event.png` | Event detail (roster, shifts, amenities) |
+| `04_chat_screen.png` | Chat with messages |
+| `05_my_troops.png` | My signed-up troops |
+| `06_chat_list.png` | Chat room list |
+
+**Capturing with real data**
+
+The default run uses fake fixture data. To screenshot with live data instead:
+1. Run the app normally (`flutter run`) and log in once — the session is persisted locally.
+2. In `integration_test/screenshots_test.dart`, comment out the `await _seedSession();` line.
+3. Re-run `scripts/take_screenshots.sh`.
+
+> **Note:** On the first iOS run you may see a notification-permission dialog. Grant it and re-run to get clean screenshots.
+
 ---
 
 ## Architecture
