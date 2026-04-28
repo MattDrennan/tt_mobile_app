@@ -5,6 +5,7 @@
 
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:integration_test/integration_test.dart';
@@ -16,8 +17,6 @@ void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('capture app screenshots', (tester) async {
-    // Seed a logged-in session so the auth gate routes to HomeView instead of
-    // LoginView, bypassing the XenForo OAuth browser flow.
     await _seedSession();
 
     await app.main();
@@ -26,38 +25,74 @@ void main() {
     // 01 — Home
     await binding.takeScreenshot('01_home');
 
-    // 02 — Troop List (FakeApiClient returns instantly, no real wait needed)
+    // ── Troop List → Event → Chat ─────────────────────────────────────────────
+
     await tester.tap(find.text('View Troops'));
     await tester.pumpAndSettle();
+
+    // 02 — Troop List
     await binding.takeScreenshot('02_troop_list');
 
-    await tester.pageBack();
+    await tester.tap(find.text('Star Wars Celebration 2025'));
     await tester.pumpAndSettle();
 
-    // 03 — My Troops
+    // 03 — Event detail
+    await binding.takeScreenshot('03_event');
+
+    await tester.ensureVisible(find.text('Go To Discussion'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Go To Discussion'));
+    await tester.pumpAndSettle();
+    // addPostFrameCallback → openRoom → fetchMessages is async; yield to the
+    // Dart event loop so the Future resolves, then render the resulting frame.
+    await Future.delayed(const Duration(milliseconds: 500));
+    await tester.pump();
+
+    // 04 — Chat screen
+    await binding.takeScreenshot('04_chat_screen');
+
+    // Pop back to Home via the home-icon button (avoids pageBack() which
+    // requires a Cupertino back button that isn't always present on iOS).
+    await _tapHomeIcon(tester);
+    await tester.pumpAndSettle();
+
+    // ── My Troops ─────────────────────────────────────────────────────────────
+
     await tester.tap(find.text('My Troops'));
     await tester.pumpAndSettle();
-    await binding.takeScreenshot('03_my_troops');
 
-    await tester.pageBack();
+    // 05 — My Troops
+    await binding.takeScreenshot('05_my_troops');
+
+    await _tapHomeIcon(tester);
     await tester.pumpAndSettle();
 
-    // 04 — Chat
+    // ── Chat List ─────────────────────────────────────────────────────────────
+
     await tester.tap(find.text('Chat'));
     await tester.pumpAndSettle();
-    await binding.takeScreenshot('04_chat_list');
 
-    await tester.pageBack();
+    // 06 — Chat room list
+    await binding.takeScreenshot('06_chat_list');
+
+    await _tapHomeIcon(tester);
     await tester.pumpAndSettle();
 
-    // 00 — Login (captured via logout so session clears cleanly)
+    // ── Login (via logout) ────────────────────────────────────────────────────
+
     await tester.tap(find.text('Log Out'));
     await tester.pumpAndSettle();
     await Future.delayed(const Duration(seconds: 2));
     await tester.pumpAndSettle();
+
+    // 00 — Login
     await binding.takeScreenshot('00_login');
   });
 }
+
+/// Taps the home icon in the app bar, which pops all routes back to root.
+Future<void> _tapHomeIcon(WidgetTester tester) =>
+    tester.tap(find.byIcon(Icons.home).last);
 
 Future<void> _seedSession() async {
   final dir = await getApplicationDocumentsDirectory();

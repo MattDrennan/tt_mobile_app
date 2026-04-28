@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
@@ -120,39 +119,26 @@ class ChatController extends ChangeNotifier {
     _isLoadingMessages = true;
     _notifySafe();
     try {
-      final response = await http.get(
-        _api.forumApiUri('threads/$_activeThreadId', {
-          'with_posts': true,
-          'page': 1,
-        }),
-        headers: _api.forumAuthHeaders,
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        if (data.containsKey('thread') && data.containsKey('posts')) {
-          final posts = data['posts'] as List;
-          final fetched =
-              posts.where((p) => p['message_state'] == 'visible').map((post) {
-            final u = post['User'] as Map<String, dynamic>;
-            return types.CustomMessage(
-              author: types.User(
-                id: u['user_id'].toString(),
-                firstName: u['username']?.toString() ?? 'Unknown',
-                imageUrl: u['avatar_urls']?['s'] as String?,
-              ),
-              createdAt: (post['post_date'] as num).toInt() * 1000,
-              id: post['post_id'].toString(),
-              metadata: {'html': post['message_parsed']},
-            );
-          }).toList();
-          _messages = fetched.reversed.toList();
-        }
-      } else {
-        _actionError = _extractForumError(
-          response.body,
-          'Failed to load messages.',
-        );
+      final data = await _api.getThread(_activeThreadId!);
+      if (data is Map<String, dynamic> &&
+          data.containsKey('thread') &&
+          data.containsKey('posts')) {
+        final posts = data['posts'] as List;
+        final fetched =
+            posts.where((p) => p['message_state'] == 'visible').map((post) {
+          final u = post['User'] as Map<String, dynamic>;
+          return types.CustomMessage(
+            author: types.User(
+              id: u['user_id'].toString(),
+              firstName: u['username']?.toString() ?? 'Unknown',
+              imageUrl: u['avatar_urls']?['s'] as String?,
+            ),
+            createdAt: (post['post_date'] as num).toInt() * 1000,
+            id: post['post_id'].toString(),
+            metadata: {'html': post['message_parsed']},
+          );
+        }).toList();
+        _messages = fetched.reversed.toList();
       }
     } catch (e) {
       _actionError = 'Failed to load messages.';
