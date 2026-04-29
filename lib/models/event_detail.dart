@@ -26,6 +26,8 @@ class EventDetail {
 
   List<dynamic> get shifts => List<dynamic>.from(_data['shifts'] ?? []);
 
+  List<dynamic> get eventOrganizations => List<dynamic>.from(_data['event_organizations'] ?? []);
+
   bool get isLimited => _data['isLimited'] == true || _data['isLimited'] == 1;
 
   bool get guestsAllowed {

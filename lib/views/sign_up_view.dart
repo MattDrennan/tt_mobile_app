@@ -11,6 +11,7 @@ class SignUpView extends StatefulWidget {
   final int limitedEvent;
   final int allowTentative;
   final List<dynamic> shifts;
+  final List<dynamic> eventOrganizations;
   final ApiClient api;
 
   const SignUpView({
@@ -21,6 +22,7 @@ class SignUpView extends StatefulWidget {
     required this.allowTentative,
     required this.api,
     this.shifts = const [],
+    this.eventOrganizations = const [],
   });
 
   @override
@@ -32,27 +34,36 @@ class _SignUpViewState extends State<SignUpView> {
   Costume? _selectedCostume;
   Costume? _backupCostume;
   int? _selectedShiftId;
+  int? _selectedOrgId;
   bool _isSubmitting = false;
 
   bool get _hasMultipleShifts => widget.shifts.length > 1;
 
+  bool get _hasOrganizations => widget.eventOrganizations.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
-    _selectedStatus = widget.limitedEvent == 1 ? 'pending' : 'going';
+    final hasOrgs = widget.eventOrganizations.isNotEmpty;
+    if (widget.limitedEvent == 1 && !hasOrgs) {
+      _selectedStatus = 'pending';
+    } else {
+      _selectedStatus = 'going';
+    }
     if (widget.shifts.isNotEmpty) {
       _selectedShiftId = (widget.shifts.first['id'] as num).toInt();
     }
   }
 
   Future<List<Costume>> _fetchCostumes(String? filter) async {
-    final data = await widget.api.getJson(
-      widget.api.mobileApiUri({
-        'action': 'get_costumes_for_trooper',
-        'trooperid': widget.userId,
-        'friendid': 0,
-      }),
-    );
+    final params = <String, dynamic>{
+      'action': 'get_costumes_for_trooper',
+      'trooperid': widget.userId,
+      'friendid': 0,
+    };
+    if (_selectedOrgId != null) params['organization_id'] = _selectedOrgId!;
+
+    final data = await widget.api.getJson(widget.api.mobileApiUri(params));
     final list = data as List? ?? [];
     return list
         .map((c) => Costume(
@@ -63,7 +74,7 @@ class _SignUpViewState extends State<SignUpView> {
   }
 
   Future<void> _submit() async {
-    if (_selectedStatus == null || _selectedCostume == null) {
+    if (_selectedCostume == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Please select a costume before signing up!')),
@@ -74,6 +85,13 @@ class _SignUpViewState extends State<SignUpView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Please select a shift before signing up!')),
+      );
+      return;
+    }
+    if (_hasOrganizations && _selectedOrgId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Please select an organization before signing up!')),
       );
       return;
     }
@@ -90,6 +108,7 @@ class _SignUpViewState extends State<SignUpView> {
       'backupcostume': _backupCostume?.id ?? 0,
     };
     if (_selectedShiftId != null) params['shiftid'] = _selectedShiftId!;
+    if (_selectedOrgId != null) params['organization_id'] = _selectedOrgId!;
 
     try {
       final data =
@@ -116,7 +135,7 @@ class _SignUpViewState extends State<SignUpView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: buildAppBar(context, 'Sign Up'),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,54 +157,94 @@ class _SignUpViewState extends State<SignUpView> {
               ),
               const SizedBox(height: 16),
             ],
-            DropdownButton<String>(
-              value: _selectedStatus,
-              items: [
-                if (widget.limitedEvent != 1) ...[
-                  const DropdownMenuItem(
-                      value: 'going', child: Text("I'll be there!")),
-                  if (widget.allowTentative == 1)
+            if (_hasOrganizations) ...[
+              const Text('Organization:', style: TextStyle(fontSize: 16)),
+              DropdownButton<int>(
+                value: _selectedOrgId,
+                hint: const Text('Select an organization'),
+                items: widget.eventOrganizations
+                    .map<DropdownMenuItem<int>>((org) {
+                  return DropdownMenuItem<int>(
+                    value: (org['id'] as num?)?.toInt() ?? 0,
+                    child: Text(org['name']?.toString() ?? ''),
+                  );
+                }).toList(),
+                onChanged: (v) => setState(() {
+                  _selectedOrgId = v;
+                  _selectedCostume = null;
+                  _backupCostume = null;
+                }),
+                isExpanded: true,
+                underline: Container(height: 2, color: Colors.blue),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue[900],
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Your status will be Going or Stand By based on availability for the selected organization.',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ] else ...[
+              DropdownButton<String>(
+                value: _selectedStatus,
+                items: [
+                  if (widget.limitedEvent != 1) ...[
                     const DropdownMenuItem(
-                        value: 'tentative', child: Text('Tentative')),
-                ] else
-                  const DropdownMenuItem(
-                    value: 'pending',
-                    child: Text('Request to attend (Pending)'),
-                  ),
-              ],
-              onChanged: (v) => setState(() => _selectedStatus = v),
-              isExpanded: true,
-              underline: Container(height: 2, color: Colors.blue),
-            ),
-            const SizedBox(height: 16),
-            const Text('Costume:', style: TextStyle(fontSize: 16)),
-            DropdownSearch<Costume>(
-              items: (filter, _) => _fetchCostumes(filter),
-              itemAsString: (c) => c.name,
-              selectedItem: _selectedCostume,
-              compareFn: (a, b) => a.id == b.id,
-              onChanged: (v) => setState(() => _selectedCostume = v),
-              popupProps: const PopupProps.menu(
-                showSearchBox: true,
-                fit: FlexFit.loose,
-                constraints: BoxConstraints(),
+                        value: 'going', child: Text("I'll be there!")),
+                    if (widget.allowTentative == 1)
+                      const DropdownMenuItem(
+                          value: 'tentative', child: Text('Tentative')),
+                  ] else
+                    const DropdownMenuItem(
+                      value: 'pending',
+                      child: Text('Request to attend (Pending)'),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _selectedStatus = v),
+                isExpanded: true,
+                underline: Container(height: 2, color: Colors.blue),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text('Backup Costume:', style: TextStyle(fontSize: 16)),
-            DropdownSearch<Costume>(
-              items: (filter, _) => _fetchCostumes(filter),
-              itemAsString: (c) => c.name,
-              selectedItem: _backupCostume,
-              compareFn: (a, b) => a.id == b.id,
-              onChanged: (v) => setState(() => _backupCostume = v),
-              popupProps: const PopupProps.menu(
-                showSearchBox: true,
-                fit: FlexFit.loose,
-                constraints: BoxConstraints(),
+              const SizedBox(height: 16),
+            ],
+            if (!_hasOrganizations || _selectedOrgId != null) ...[
+              const Text('Costume:', style: TextStyle(fontSize: 16)),
+              DropdownSearch<Costume>(
+                key: ValueKey('costume_$_selectedOrgId'),
+                items: (filter, _) => _fetchCostumes(filter),
+                itemAsString: (c) => c.name,
+                selectedItem: _selectedCostume,
+                compareFn: (a, b) => a.id == b.id,
+                onChanged: (v) => setState(() => _selectedCostume = v),
+                popupProps: const PopupProps.menu(
+                  showSearchBox: true,
+                  fit: FlexFit.loose,
+                  constraints: BoxConstraints(),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
+              const Text('Backup Costume:', style: TextStyle(fontSize: 16)),
+              DropdownSearch<Costume>(
+                key: ValueKey('backup_$_selectedOrgId'),
+                items: (filter, _) => _fetchCostumes(filter),
+                itemAsString: (c) => c.name,
+                selectedItem: _backupCostume,
+                compareFn: (a, b) => a.id == b.id,
+                onChanged: (v) => setState(() => _backupCostume = v),
+                popupProps: const PopupProps.menu(
+                  showSearchBox: true,
+                  fit: FlexFit.loose,
+                  constraints: BoxConstraints(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
