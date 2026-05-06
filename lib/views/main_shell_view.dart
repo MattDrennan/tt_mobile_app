@@ -46,7 +46,7 @@ class _MainShellViewState extends State<MainShellView> {
     if (mounted) setState(() {});
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  AppBar _buildAppBar() {
     final isTrackerTab = _currentIndex == 0;
 
     return AppBar(
@@ -60,28 +60,32 @@ class _MainShellViewState extends State<MainShellView> {
                 UrlLauncherService.openExternal(AppConfig.trackerUrl),
           ),
       ],
-      bottom: isTrackerTab && _webviewController.isLoading
-          ? PreferredSize(
-              preferredSize: const Size.fromHeight(3),
-              child: LoadingOverlay(
-                progress: _webviewController.loadingProgress,
-                isVisible: true,
-              ),
-            )
-          : null,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final showLoader = _currentIndex == 0 && _webviewController.isLoading;
+
     return Scaffold(
       appBar: _buildAppBar(),
-      body: IndexedStack(
-        index: _currentIndex,
+      body: Column(
         children: [
-          TrackerView(controller: _webviewController),
-          const NotificationsView(),
-          SettingsView(webviewController: _webviewController),
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: [
+                TrackerView(controller: _webviewController),
+                const NotificationsView(),
+                SettingsView(webviewController: _webviewController),
+              ],
+            ),
+          ),
+          // Lightsaber bar sits at the bottom of content, above the nav bar
+          LoadingOverlay(
+            progress: _webviewController.loadingProgress,
+            isVisible: showLoader,
+          ),
         ],
       ),
       bottomNavigationBar: AppBottomNav(
