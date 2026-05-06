@@ -52,13 +52,19 @@ class _MainShellViewState extends State<MainShellView> {
     return AppBar(
       title: Text(_tabTitles[_currentIndex]),
       actions: [
-        if (isTrackerTab)
+        if (isTrackerTab) ...[
+          IconButton(
+            icon: const Icon(Icons.home_rounded),
+            tooltip: 'Home',
+            onPressed: () => _webviewController.load(AppConfig.trackerUrl),
+          ),
           IconButton(
             icon: const Icon(Icons.open_in_browser_rounded),
             tooltip: 'Open in Browser',
             onPressed: () =>
                 UrlLauncherService.openExternal(AppConfig.trackerUrl),
           ),
+        ],
       ],
     );
   }
