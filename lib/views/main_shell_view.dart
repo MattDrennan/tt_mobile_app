@@ -50,7 +50,25 @@ class _MainShellViewState extends State<MainShellView> {
     final isTrackerTab = _currentIndex == 0;
 
     return AppBar(
-      title: Text(_tabTitles[_currentIndex]),
+      title: Text(
+        _tabTitles[_currentIndex].toUpperCase(),
+        style: const TextStyle(
+          color: Color(0xFFFFE81F),
+          letterSpacing: 3.5,
+          fontWeight: FontWeight.w700,
+          fontSize: 17,
+          shadows: [
+            // Warm golden ambient glow
+            Shadow(color: Color(0xFFFFAA00), blurRadius: 12),
+            // Dark base for contrast
+            Shadow(
+              color: Color(0xFF000000),
+              blurRadius: 4,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+      ),
       actions: [
         if (isTrackerTab) ...[
           IconButton(
