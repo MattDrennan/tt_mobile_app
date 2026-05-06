@@ -32,6 +32,9 @@ class WebviewController extends ChangeNotifier {
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(AppConfig.splashBackgroundColor)
+      ..setOnConsoleMessage(
+        (message) => debugPrint('[WebView] ${message.level.name}: ${message.message}'),
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: _onPageStarted,
@@ -52,6 +55,7 @@ class WebviewController extends ChangeNotifier {
   }
 
   void _onPageFinished(String url) {
+    debugPrint('[WebView] page finished: $url');
     _isLoading = false;
     _overrideWindowOpen();
     _injectFcmToken();
