@@ -1,9 +1,8 @@
 # 501st Legion Troop Tracker Mobile App
 
-A Flutter mobile app for tracking **Star Wars costuming events (troops)** for the 501st Legion,
-built for the Florida Garrison. Requires a running instance of
-[Troop Tracker](https://github.com/obsidianslicers/trooper-tracker) and (OPTIONAL)
-[XenForo](https://xenforo.com/) for authentication and forum integration.
+A Flutter mobile app for the **501st Legion Florida Garrison** that wraps the
+[Troop Tracker](https://github.com/obsidianslicers/trooper-tracker) web app in a native shell.
+Requires a running instance of Troop Tracker — no XenForo installation needed.
 
 **Live apps:**
 - [Android (Google Play)](https://play.google.com/store/apps/details?id=com.drennansoftware.troop_tracker)
@@ -14,32 +13,16 @@ built for the Florida Garrison. Requires a running instance of
 
 ## Features
 
-- OAuth2 PKCE login via XenForo
-- Browse upcoming and past troops (events)
-- Confirm attendance, add guests, and add friends to troops
-- View event details: location, limits, costumes, and roster
-- Real-time chat per troop (powered by XenForo threads)
+- Full Troop Tracker web app loaded in an embedded WebView
 - Push notifications via Firebase Cloud Messaging
+- Deep-link routing into specific troop pages from notifications
 - Session persistence via Hive local storage
 
 ---
 
 ## Setup
 
-### 1. Install the XenForo add-ons
-
-In your XenForo installation, install the following Troop Tracker add-ons:
-
-- [TroopTrackerViewAttachment](https://github.com/MattDrennan/TroopTrackerViewAttachment)
-- [TroopTrackerIgnoreUsers](https://github.com/MattDrennan/TroopTrackerIgnoreUsers)
-- [TroopTrackerUserGroups](https://github.com/MattDrennan/TroopTrackerUserGroups)
-- [Troop Tracker - Upgrade Stats](https://github.com/MattDrennan/Troop-Tracker---Upgrade-Stats)
-
-### 2. Troop Tracker database
-
-All required SQL is included with the Troop Tracker web app install — no additional SQL needed.
-
-### 3. Firebase project setup
+### 1. Firebase project setup
 
 The app uses Firebase Cloud Messaging (FCM) for push notifications. You need to create a Firebase
 project and add platform-specific config files before building.
@@ -74,7 +57,7 @@ This updates `lib/firebase_options.dart` with your project's keys. Commit the up
 **do not commit** the `google-services.json` or `GoogleService-Info.plist` files — they contain
 secret keys.
 
-### 4. Tracker URL (required)
+### 2. Tracker URL (required)
 
 The app loads your Troop Tracker instance in a WebView. Set `TRACKER_URL` at build time using
 `--dart-define`:
@@ -96,7 +79,7 @@ If `TRACKER_URL` is not provided, the app defaults to `http://localhost:8000/`.
 The URL must end with a trailing slash. The app derives the trusted domain from this URL
 automatically — no other config needed.
 
-### 5. Android signing (release builds only)
+### 3. Android signing (release builds only)
 
 Create `android/key.properties`:
 
