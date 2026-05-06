@@ -32,6 +32,7 @@ class AppConfig {
   // fl501st.com is always internal so forum/site links don't open externally during local dev.
   static Set<String> get internalDomains => {
         'fl501st.com',
+        'redirectmeto.com',
         trackerDomain,
       };
 
