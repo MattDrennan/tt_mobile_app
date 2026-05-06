@@ -1,3 +1,4 @@
+import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/push_notification.dart';
@@ -16,6 +17,7 @@ class NotificationsController extends ChangeNotifier {
     notifyListeners();
     _notifications = await NotificationApiService.fetchAll();
     _isLoading = false;
+    _syncBadge();
     notifyListeners();
   }
 
@@ -34,12 +36,18 @@ class NotificationsController extends ChangeNotifier {
             )
           : n;
     }).toList();
+    _syncBadge();
     notifyListeners();
   }
 
   Future<void> clearAll() async {
     await NotificationApiService.clearAll();
     _notifications = [];
+    _syncBadge();
     notifyListeners();
+  }
+
+  void _syncBadge() {
+    AppBadgePlus.updateBadge(unreadCount);
   }
 }
