@@ -4,9 +4,14 @@ import 'package:flutter/foundation.dart';
 class PushNotificationService {
   static String? currentToken;
   static void Function(String url)? _onDeepLink;
+  static String? _pendingUrl;
 
   static void setDeepLinkHandler(void Function(String url) handler) {
     _onDeepLink = handler;
+    if (_pendingUrl != null) {
+      handler(_pendingUrl!);
+      _pendingUrl = null;
+    }
   }
 
   static Future<void> initialize() async {
@@ -33,6 +38,8 @@ class PushNotificationService {
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
 
     // App launched from a terminated state by tapping a notification.
+    // _onDeepLink is not set yet here — _handleMessage stores url in _pendingUrl
+    // and setDeepLinkHandler() flushes it once the WebView is ready.
     final initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) _handleMessage(initialMessage);
   }
@@ -40,6 +47,11 @@ class PushNotificationService {
   static void _handleMessage(RemoteMessage message) {
     final url = message.data['url'] as String?;
     debugPrint('[FCM] notification tapped, url: $url');
-    if (url != null) _onDeepLink?.call(url);
+    if (url == null) return;
+    if (_onDeepLink != null) {
+      _onDeepLink!(url);
+    } else {
+      _pendingUrl = url;
+    }
   }
 }
