@@ -347,13 +347,7 @@ class _EventViewState extends State<EventView> {
                             style: TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
                         const Divider(),
-                        LimitRow(
-                          total: event.limitTotal != null
-                              ? 'This event is limited to ${event.limitTotal} troopers.'
-                              : null,
-                          clubs: event.limitClubs,
-                          extra: event.limitAll,
-                        ),
+                        _buildLimitsWidget(event),
                         if (event.isManualSelection) ...[
                           const SizedBox(height: 10),
                           Container(
@@ -910,6 +904,66 @@ class _EventViewState extends State<EventView> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLimitsWidget(EventDetail event) {
+    final limits = event.limits;
+    if (limits == null) {
+      return LimitRow(
+        total: event.limitTotal != null
+            ? 'This event is limited to ${event.limitTotal} troopers.'
+            : null,
+        clubs: event.limitClubs,
+        extra: event.limitAll,
+      );
+    }
+
+    final eventLimits =
+        (limits['event'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final orgLimits =
+        (limits['organizations'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+
+    Widget limitLine(String text) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('• '),
+              Expanded(child: Text(text, softWrap: true)),
+            ],
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...eventLimits.map((item) {
+          final label = item['label'] as String? ?? '';
+          final allowed = item['allowed'];
+          final used = item['used'];
+          final remaining = item['remaining'];
+          final text = used != null && remaining != null
+              ? '$label: $used / $allowed ($remaining remaining)'
+              : '$label: $allowed';
+          return limitLine(text);
+        }),
+        if (orgLimits.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          const Text('Per Organization:',
+              style: TextStyle(fontWeight: FontWeight.w600)),
+          ...orgLimits.map((org) {
+            final name = org['organization_name'] as String? ?? '';
+            final troopers = org['troopers_allowed'];
+            final handlers = org['handlers_allowed'];
+            final parts = <String>[
+              if (troopers != null) '$troopers troopers',
+              if (handlers != null) '$handlers handlers',
+            ];
+            return limitLine('$name: ${parts.join(' / ')}');
+          }),
+        ],
+      ],
     );
   }
 }

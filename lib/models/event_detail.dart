@@ -59,6 +59,12 @@ class EventDetail {
   String? get limitClubs => _data['limitClubs']?.toString();
   String? get limitAll => _data['limitAll']?.toString();
 
+  Map<String, dynamic>? get limits {
+    final v = _data['limits'];
+    if (v is Map<String, dynamic>) return v;
+    return null;
+  }
+
   bool get missionBriefRequired {
     final v = _data['missionBriefRequired'] ?? _data['mission_brief_required'];
     if (v is bool) return v;
