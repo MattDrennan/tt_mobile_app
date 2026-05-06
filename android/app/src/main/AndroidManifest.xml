@@ -3,6 +3,9 @@
     <!-- Required for WebView network access -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Push notifications (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <!-- Camera and media access for WebView file upload dialogs -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"

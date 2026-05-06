@@ -10,7 +10,7 @@ class WebViewService {
   static bool isInternalUrl(String url) {
     final uri = Uri.tryParse(url);
     if (uri == null) return false;
-    // Matches fl501st.com and any subdomain (e.g. www.fl501st.com)
-    return uri.host.endsWith(AppConfig.trackerDomain);
+    // Always keep fl501st.com and the active tracker domain inside the WebView.
+    return AppConfig.internalDomains.any((domain) => uri.host.endsWith(domain));
   }
 }

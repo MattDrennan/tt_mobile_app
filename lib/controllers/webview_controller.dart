@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../config/app_config.dart';
+import '../services/push_notification_service.dart';
 import '../services/url_launcher_service.dart';
 import '../services/webview_service.dart';
 
@@ -52,7 +53,27 @@ class WebviewController extends ChangeNotifier {
 
   void _onPageFinished(String url) {
     _isLoading = false;
+    _overrideWindowOpen();
+    _injectFcmToken();
     notifyListeners();
+  }
+
+  void _injectFcmToken() {
+    final token = PushNotificationService.currentToken;
+    debugPrint('[FCM] _injectFcmToken called, token: $token');
+    if (token == null) return;
+    _webViewController.runJavaScript(
+      'window.__fcmToken = "$token";'
+      'if (typeof window.__onFcmTokenReady === "function") window.__onFcmTokenReady("$token");',
+    ).catchError((e) => debugPrint('[FCM] JS injection error: $e'));
+  }
+
+  // Redirects window.open() into the same WebView so OAuth callbacks don't
+  // escape to the system browser and lose the session cookie.
+  void _overrideWindowOpen() {
+    _webViewController.runJavaScript(
+      'window.open = function(url) { if (url) window.location.href = url; return window; };',
+    );
   }
 
   void _onProgress(int progress) {
