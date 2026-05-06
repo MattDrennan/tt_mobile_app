@@ -29,6 +29,12 @@ class WebviewController extends ChangeNotifier {
   /// Sets up the WebViewController and loads the tracker URL.
   /// Must be called once by MainShellView.initState().
   void initialize() {
+    PushNotificationService.setDeepLinkHandler((path) {
+      final base = AppConfig.trackerUrl.replaceAll(RegExp(r'/$'), '');
+      final relative = path.startsWith('/') ? path : '/$path';
+      load('$base$relative');
+    });
+
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(AppConfig.splashBackgroundColor)
