@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -38,6 +40,7 @@ class WebviewController extends ChangeNotifier {
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(AppConfig.splashBackgroundColor)
+      ..setUserAgent(_buildUserAgent())
       ..setOnConsoleMessage(
         (message) => debugPrint('[WebView] ${message.level.name}: ${message.message}'),
       )
@@ -139,5 +142,16 @@ class WebviewController extends ChangeNotifier {
   /// Loads a specific URL. Used for deep link support.
   Future<void> load(String url) async {
     await _webViewController.loadRequest(Uri.parse(url));
+  }
+
+  // On Android the default WebView UA contains "; wv)" which marks the request
+  // as an embedded WebView. XenForo (and other OAuth providers) detect this and
+  // block authorization forms as a phishing countermeasure. Return a clean
+  // mobile Chrome UA on Android; return null on iOS to keep the default Safari UA.
+  String? _buildUserAgent() {
+    if (!Platform.isAndroid) return null;
+    return 'Mozilla/5.0 (Linux; Android 10; K) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/124.0.0.0 Mobile Safari/537.36';
   }
 }

@@ -10,9 +10,10 @@ class AppConfig {
   // The Tracker site loaded in the WebView.
   // Override at run time: flutter run --dart-define=TRACKER_URL=http://localhost:8000/
   // Physical device against local server: use your Mac's LAN IP, e.g. http://192.168.1.x:8000/
+  // Android: http://10.0.2.2:8000/ (LOCAL)
   static const String trackerUrl = String.fromEnvironment(
     'TRACKER_URL',
-    defaultValue: 'http://localhost:8000/',
+    defaultValue: 'http://10.0.2.2:8000/',
   );
 
   // Derived from trackerUrl — no need to change this manually.
