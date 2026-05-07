@@ -27,6 +27,7 @@ class _MainShellViewState extends State<MainShellView> {
   int _currentIndex = 0;
   late final WebviewController _webviewController;
   late final NotificationsController _notificationsController;
+  bool? _lastKnownLoggedIn;
 
   static const _tabTitles = ['Troop Tracker', 'Notifications', 'Settings'];
 
@@ -40,8 +41,9 @@ class _MainShellViewState extends State<MainShellView> {
 
     _notificationsController = NotificationsController();
 
-    // Refresh the list when a push arrives while the app is in the foreground.
-    FirebaseMessaging.onMessage.listen((_) => _notificationsController.refresh());
+    FirebaseMessaging.onMessage.listen((_) {
+      if (_webviewController.isLoggedIn != false) _notificationsController.refresh();
+    });
   }
 
   @override
@@ -53,6 +55,11 @@ class _MainShellViewState extends State<MainShellView> {
   }
 
   void _onWebviewChanged() {
+    final isLoggedIn = _webviewController.isLoggedIn;
+    if (_lastKnownLoggedIn == true && isLoggedIn == false) {
+      _notificationsController.clearForLogout();
+    }
+    _lastKnownLoggedIn = isLoggedIn;
     if (mounted) setState(() {});
   }
 
@@ -129,10 +136,14 @@ class _MainShellViewState extends State<MainShellView> {
         listenable: _notificationsController,
         builder: (context, _) => AppBottomNav(
           currentIndex: _currentIndex,
-          unreadNotificationCount: _notificationsController.unreadCount,
+          unreadNotificationCount: _webviewController.isLoggedIn == false
+              ? 0
+              : _notificationsController.unreadCount,
           onTap: (index) {
             setState(() => _currentIndex = index);
-            if (index == 1) _notificationsController.refresh();
+            if (index == 1 && _webviewController.isLoggedIn != false) {
+              _notificationsController.refresh();
+            }
           },
         ),
       ),

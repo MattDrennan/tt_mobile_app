@@ -25,14 +25,18 @@ class _NotificationsViewState extends State<NotificationsView> {
   @override
   void initState() {
     super.initState();
-    widget.controller.refresh();
+    if (widget.webviewController.isLoggedIn != false) widget.controller.refresh();
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: widget.controller,
+      listenable: Listenable.merge([widget.controller, widget.webviewController]),
       builder: (context, _) {
+        if (widget.webviewController.isLoggedIn == false) {
+          return _SignInPrompt(onSignIn: widget.onNavigateToTracker);
+        }
+
         final ctrl = widget.controller;
 
         if (ctrl.isLoading && ctrl.notifications.isEmpty) {
@@ -161,6 +165,41 @@ class _NotificationTile extends StatelessWidget {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
+  }
+}
+
+class _SignInPrompt extends StatelessWidget {
+  final VoidCallback onSignIn;
+  const _SignInPrompt({required this.onSignIn});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.lock_outline_rounded, size: 72, color: Colors.white24),
+          const SizedBox(height: 20),
+          const Text(
+            'Sign in to view notifications',
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                color: Colors.white70),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'You are not currently signed in.',
+            style: TextStyle(color: Colors.white38),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: onSignIn,
+            child: const Text('Go to Sign In'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

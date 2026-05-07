@@ -47,6 +47,12 @@ class NotificationsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearForLogout() {
+    _notifications = [];
+    _syncBadge();
+    notifyListeners();
+  }
+
   void _syncBadge() {
     AppBadgePlus.updateBadge(unreadCount);
   }

@@ -19,11 +19,14 @@ class WebviewController extends ChangeNotifier {
   double _loadingProgress = 0.0;
   bool _hasError = false;
   String _errorMessage = '';
+  bool? _isLoggedIn;
 
   bool get isLoading => _isLoading;
   double get loadingProgress => _loadingProgress;
   bool get hasError => _hasError;
   String get errorMessage => _errorMessage;
+  // null = unknown (page not yet loaded), true/false = auth state from web app
+  bool? get isLoggedIn => _isLoggedIn;
 
   /// The underlying webview_flutter controller used by WebViewWidget.
   WebViewController get webViewController => _webViewController;
@@ -68,7 +71,23 @@ class WebviewController extends ChangeNotifier {
     _isLoading = false;
     _overrideWindowOpen();
     _injectFcmToken();
+    _checkAuthState();
     notifyListeners();
+  }
+
+  Future<void> _checkAuthState() async {
+    try {
+      final result = await _webViewController.runJavaScriptReturningResult(
+        'window.__authState === true ? "true" : "false"',
+      );
+      final loggedIn = result.toString().replaceAll('"', '') == 'true';
+      if (_isLoggedIn != loggedIn) {
+        _isLoggedIn = loggedIn;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[Auth] state check error: $e');
+    }
   }
 
   void _injectFcmToken() {
