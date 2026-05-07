@@ -27,7 +27,7 @@ class NotificationApiService {
     }
   }
 
-  static Future<void> markRead(int id) async {
+  static Future<void> markRead(String id) async {
     try {
       await http.post(_uri('/api/push-notifications/$id/read'), headers: _headers);
     } catch (e) {

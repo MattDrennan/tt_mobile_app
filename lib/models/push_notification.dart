@@ -1,5 +1,5 @@
 class PushNotification {
-  final int id;
+  final String id;
   final String title;
   final String body;
   final String url;
@@ -19,7 +19,7 @@ class PushNotification {
 
   factory PushNotification.fromJson(Map<String, dynamic> json) {
     return PushNotification(
-      id: json['id'] as int,
+      id: json['id'] as String,
       title: json['title'] as String,
       body: json['body'] as String,
       url: json['url'] as String,
