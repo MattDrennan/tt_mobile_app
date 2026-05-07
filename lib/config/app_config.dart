@@ -13,7 +13,7 @@ class AppConfig {
   // Android: http://10.0.2.2:8000/ (LOCAL)
   static const String trackerUrl = String.fromEnvironment(
     'TRACKER_URL',
-    defaultValue: 'http://10.0.2.2:8000/',
+    defaultValue: 'http://localhost:8000/',
   );
 
   // Derived from trackerUrl — no need to change this manually.
