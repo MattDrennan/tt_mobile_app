@@ -2,24 +2,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Troop Tracker (test server)",
+      "name": "Troop Tracker",
       "type": "dart",
       "request": "launch",
       "program": "lib/main.dart"
-    },
-    {
-      "name": "Troop Tracker (local – simulator)",
-      "type": "dart",
-      "request": "launch",
-      "program": "lib/main.dart",
-      "args": ["--dart-define=TRACKER_URL=http://localhost:8000/"]
-    },
-    {
-      "name": "Troop Tracker (local – device, set IP)",
-      "type": "dart",
-      "request": "launch",
-      "program": "lib/main.dart",
-      "args": ["--dart-define=TRACKER_URL=http://192.168.x.x:8000/"]
     }
   ]
 }

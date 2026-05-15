@@ -59,25 +59,31 @@ secret keys.
 
 ### 2. Tracker URL (required)
 
-The app loads your Troop Tracker instance in a WebView. Set `TRACKER_URL` at build time using
-`--dart-define`:
+The app loads your Troop Tracker instance in a WebView. Set your URL in `.env`:
 
+1. Copy `.env.example` to `.env` (gitignored — never committed):
+   ```bash
+   cp .env.example .env
+   ```
+2. Edit `.env` and set your Troop Tracker URL:
+   ```
+   TRACKER_URL=https://your-domain.com/troop-tracker/
+   ```
+
+That's it — no build flags needed. The URL must end with a trailing slash.
+
+**Local development:**
+Set `TRACKER_URL=http://localhost:8000/` in `.env`.
+For a physical device against a local server, use your Mac's LAN IP: `http://192.168.1.x:8000/`
+For Android emulator: `http://10.0.2.2:8000/`
+
+**CI / release builds:**
+Write a `.env` file from your CI secrets before building:
 ```bash
-# Development
-flutter run --dart-define=TRACKER_URL=http://localhost:8000/
-
-# Physical device against a local server (use your Mac's LAN IP)
-flutter run --dart-define=TRACKER_URL=http://192.168.1.x:8000/
-
-# Production build
-flutter build apk --dart-define=TRACKER_URL=https://your-domain.com/troop-tracker/
-flutter build ipa --dart-define=TRACKER_URL=https://your-domain.com/troop-tracker/
+echo "TRACKER_URL=$TRACKER_URL_SECRET" > .env
+flutter build apk
+flutter build ipa
 ```
-
-If `TRACKER_URL` is not provided, the app defaults to `http://localhost:8000/`.
-
-The URL must end with a trailing slash. The app derives the trusted domain from this URL
-automatically — no other config needed.
 
 ### 3. Android signing (release builds only)
 
@@ -96,7 +102,7 @@ keyPassword=YOUR_KEY_PASSWORD
 
 ```bash
 flutter pub get
-flutter run --dart-define=TRACKER_URL=https://your-domain.com/troop-tracker/
+flutter run
 ```
 
 ## Generating launcher icons

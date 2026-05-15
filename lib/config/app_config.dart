@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Single source of truth for all app-wide configuration.
 /// Change the URL, colors, or name here — nowhere else.
@@ -8,13 +9,11 @@ class AppConfig {
   static const String appName = 'Troop Tracker';
 
   // The Tracker site loaded in the WebView.
-  // Override at run time: flutter run --dart-define=TRACKER_URL=http://localhost:8000/
+  // Set TRACKER_URL in .env (copy .env.example → .env and edit).
   // Physical device against local server: use your Mac's LAN IP, e.g. http://192.168.1.x:8000/
-  // Android: http://10.0.2.2:8000/ (LOCAL)
-  static const String trackerUrl = String.fromEnvironment(
-    'TRACKER_URL',
-    defaultValue: 'http://localhost:8000/',
-  );
+  // Android emulator: http://10.0.2.2:8000/
+  static String get trackerUrl =>
+      dotenv.env['TRACKER_URL'] ?? 'https://test.fl501st.com/';
 
   // Derived from trackerUrl — no need to change this manually.
   // "test.fl501st.com" → "fl501st.com", "localhost" → "localhost", "192.168.x.x" → the IP.
